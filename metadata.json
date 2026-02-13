@@ -1,0 +1,8 @@
+{
+  "name": "Sổ Bán Hàng Clone - Todo Dashboard",
+  "description": "A business management dashboard following the Sổ Bán Hàng specification with real-time counters, task management, and an integrated AI assistant using Gemini 3 Pro with thinking capabilities.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
