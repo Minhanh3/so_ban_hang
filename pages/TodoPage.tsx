@@ -14,8 +14,12 @@ const TodoPage: React.FC = () => {
   const fetchCounts = async () => {
     setIsRefreshing(true);
     try {
-      const loadedData = await db.queryAll();
-      setData(loadedData);
+      const [orders, products, debts] = await Promise.all([
+        db.getOrders(),
+        db.getProducts(),
+        db.getDebts()
+      ]);
+      setData({ orders, products, debts });
     } catch (err) {
       console.error("DB Load error:", err);
     } finally {
@@ -59,7 +63,7 @@ const TodoPage: React.FC = () => {
           <h2 className="text-3xl font-black text-slate-900 tracking-tight">Việc cần làm</h2>
           <p className="text-slate-500 mt-1 font-medium">Chào buổi sáng! Đây là những gì bạn cần lưu ý hôm nay.</p>
         </div>
-        <button 
+        <button
           onClick={fetchCounts}
           disabled={isRefreshing}
           className="inline-flex items-center justify-center gap-2 bg-white border border-slate-200 px-6 py-3 rounded-2xl text-sm font-bold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm disabled:opacity-50 active:scale-95"
@@ -85,7 +89,7 @@ const TodoPage: React.FC = () => {
             </div>
             <ChevronRight size={20} className="opacity-50 group-hover:opacity-100" />
           </Link>
-          
+
           <Link to="/products" className="flex items-center gap-4 p-5 bg-white border border-slate-100 rounded-3xl text-slate-900 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all group">
             <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600">
               <Package size={24} />
@@ -131,9 +135,9 @@ const TodoPage: React.FC = () => {
             Ứng dụng đang chạy trên cơ chế LocalStorage SQL-Engine mô phỏng, đảm bảo dữ liệu được lưu trữ an toàn ngay cả khi tải lại trang.
           </p>
           <div className="flex flex-wrap gap-3">
-             <span className="px-4 py-2 bg-white/5 rounded-xl border border-white/10 text-xs font-bold">SQL Indexing</span>
-             <span className="px-4 py-2 bg-white/5 rounded-xl border border-white/10 text-xs font-bold">Atomic Transactions</span>
-             <span className="px-4 py-2 bg-white/5 rounded-xl border border-white/10 text-xs font-bold">Gemini AI Support</span>
+            <span className="px-4 py-2 bg-white/5 rounded-xl border border-white/10 text-xs font-bold">SQL Indexing</span>
+            <span className="px-4 py-2 bg-white/5 rounded-xl border border-white/10 text-xs font-bold">Atomic Transactions</span>
+            <span className="px-4 py-2 bg-white/5 rounded-xl border border-white/10 text-xs font-bold">Gemini AI Support</span>
           </div>
         </div>
         <div className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-1/4 opacity-5 pointer-events-none hidden lg:block">

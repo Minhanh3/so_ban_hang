@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit2, Trash2, Package, Filter, ArrowLeft, MoreHorizontal, Box } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Package, Filter, ArrowLeft, MoreHorizontal, Box, Download, FileText, FileSpreadsheet } from 'lucide-react';
 import { db } from '../services/storage';
 import { Product } from '../types';
 import ProductModal from '../components/ProductModal';
@@ -11,7 +11,7 @@ const ProductsPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | undefined>();
-  
+
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const statusFilter = searchParams.get('status');
@@ -19,13 +19,13 @@ const ProductsPage: React.FC = () => {
   const refreshProducts = async () => {
     const list = await db.getProducts();
     let filteredList = list;
-    
+
     if (statusFilter === 'out') {
       filteredList = filteredList.filter(p => p.totalStock === 0);
     } else if (statusFilter === 'low') {
       filteredList = filteredList.filter(p => p.totalStock > 0 && p.totalStock <= 10);
     }
-    
+
     setProducts(filteredList);
   };
 
@@ -33,7 +33,7 @@ const ProductsPage: React.FC = () => {
     refreshProducts();
   }, [statusFilter]);
 
-  const filteredProducts = products.filter(p => 
+  const filteredProducts = products.filter(p =>
     p.name.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -58,6 +58,30 @@ const ProductsPage: React.FC = () => {
     setIsModalOpen(true);
   };
 
+  const handleClearAll = async () => {
+    if (confirm('Bạn có chắc chắn muốn xóa TẤT CẢ sản phẩm? Hành động này không thể hoàn tác!')) {
+      await db.clearAllProducts();
+      refreshProducts();
+    }
+  };
+
+  const handleExport = () => {
+    import('../utils/csvExport').then(({ exportToCSV }) => {
+      // Flatten data for export
+      const dataToExport = products.map(p => ({
+        ...p,
+        variants: p.variants.map(v => `${v.name} (${v.stock})`).join('; ')
+      }));
+      exportToCSV(dataToExport, 'danh_sach_san_pham');
+    });
+  };
+
+  const handleExportPDF = () => {
+    import('../utils/pdfExport').then(({ exportProductsToPDF }) => {
+      exportProductsToPDF(products);
+    });
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -65,22 +89,45 @@ const ProductsPage: React.FC = () => {
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">Danh mục sản phẩm</h1>
           <p className="text-slate-500 text-sm font-medium mt-1">Quản lý kho hàng và giá bán của bạn.</p>
         </div>
-        <button 
-          onClick={() => { setEditingProduct(undefined); setIsModalOpen(true); }}
-          className="bg-green-600 text-white px-6 py-3 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-green-700 transition-all shadow-lg shadow-green-100 active:scale-95"
-        >
-          <Plus size={20} />
-          Thêm sản phẩm mới
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={handleClearAll}
+            className="bg-red-50 text-red-600 px-3 py-3 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-red-100 transition-all border border-red-100 shadow-sm"
+            title="Xóa tất cả"
+          >
+            <Trash2 size={20} />
+          </button>
+          <button
+            onClick={handleExportPDF}
+            className="bg-orange-50 text-orange-600 px-3 py-3 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-orange-100 transition-all border border-orange-100 shadow-sm"
+            title="Xuất PDF"
+          >
+            <FileText width={20} />
+          </button>
+          <button
+            onClick={handleExport}
+            className="bg-blue-50 text-blue-600 px-3 py-3 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-blue-100 transition-all border border-blue-100 shadow-sm"
+            title="Xuất Excel"
+          >
+            <FileSpreadsheet width={20} />
+          </button>
+          <button
+            onClick={() => { setEditingProduct(undefined); setIsModalOpen(true); }}
+            className="bg-green-600 text-white px-6 py-3 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-green-700 transition-all shadow-lg shadow-green-100 active:scale-95"
+          >
+            <Plus size={20} />
+            Thêm mới
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
         <div className="p-4 border-b border-slate-50 bg-slate-50/30 flex flex-col md:flex-row gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <input 
-              type="text" 
-              placeholder="Tìm kiếm theo tên sản phẩm, SKU..." 
+            <input
+              type="text"
+              placeholder="Tìm kiếm theo tên sản phẩm, SKU..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-green-500 outline-none transition-all text-sm font-medium"
@@ -122,13 +169,12 @@ const ProductsPage: React.FC = () => {
                     {product.promoPrice ? <p className="text-[10px] text-red-500 line-through">{product.promoPrice.toLocaleString()}đ</p> : null}
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                      product.totalStock === 0 
-                      ? 'bg-red-50 text-red-600' 
-                      : product.totalStock <= 10 
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${product.totalStock === 0
+                      ? 'bg-red-50 text-red-600'
+                      : product.totalStock <= 10
                         ? 'bg-amber-50 text-amber-600'
                         : 'bg-green-50 text-green-600'
-                    }`}>
+                      }`}>
                       {product.totalStock} {product.unit || 'món'}
                     </span>
                   </td>
@@ -147,13 +193,13 @@ const ProductsPage: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-1">
-                      <button 
+                      <button
                         onClick={() => openEdit(product)}
                         className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
                       >
                         <Edit2 size={18} />
                       </button>
-                      <button 
+                      <button
                         onClick={() => handleDelete(product.id)}
                         className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
                       >
@@ -176,11 +222,11 @@ const ProductsPage: React.FC = () => {
         </div>
       </div>
 
-      <ProductModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        onSave={handleSave} 
-        initialProduct={editingProduct} 
+      <ProductModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSave={handleSave}
+        initialProduct={editingProduct}
       />
     </div>
   );

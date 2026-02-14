@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Users, Search, Plus, ArrowLeft, Filter, Phone, Calendar, DollarSign, AlertTriangle } from 'lucide-react';
+import { Users, Search, Plus, ArrowLeft, Filter, Phone, Calendar, DollarSign, AlertTriangle, Trash2, FileText, FileSpreadsheet } from 'lucide-react';
 import { db } from '../services/storage';
 import { Debt, DebtType } from '../types';
 import { Link } from "react-router-dom";
@@ -28,10 +28,33 @@ const DebtsPage: React.FC = () => {
 
   const filteredDebts = debts.filter(d => {
     const matchesTab = activeTab === 'all' || d.type === activeTab;
-    const matchesSearch = d.contactName.toLowerCase().includes(search.toLowerCase()) || 
-                          (d.note || '').toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = d.contactName.toLowerCase().includes(search.toLowerCase()) ||
+      (d.note || '').toLowerCase().includes(search.toLowerCase());
     return matchesTab && matchesSearch;
   });
+
+  const handleClearAll = async () => {
+    console.log('handleClearAll clicked');
+    if (confirm('Bạn có chắc chắn muốn xóa TẤT CẢ dữ liệu sổ nợ? Hành động này không thể hoàn tác!')) {
+      console.log('Confirmed delete');
+      await db.clearAllDebts();
+      refreshDebts();
+    } else {
+      console.log('Cancelled delete');
+    }
+  };
+
+  const handleExport = () => {
+    import('../utils/csvExport').then(({ exportToCSV }) => {
+      exportToCSV(debts, 'so_no');
+    });
+  };
+
+  const handleExportPDF = () => {
+    import('../utils/pdfExport').then(({ exportDebtsToPDF }) => {
+      exportDebtsToPDF(debts);
+    });
+  };
 
   const totalReceivable = debts.filter(d => d.type === 'customer_receivable').reduce((s, d) => s + d.amount, 0);
   const totalPayable = debts.filter(d => d.type === 'supplier_payable').reduce((s, d) => s + d.amount, 0);
@@ -48,13 +71,36 @@ const DebtsPage: React.FC = () => {
             <p className="text-gray-500 text-sm">Quản lý nợ khách hàng và nợ nhà cung cấp.</p>
           </div>
         </div>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2 hover:bg-blue-700 transition-all shadow-lg"
-        >
-          <Plus size={20} />
-          Ghi nợ mới
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={handleClearAll}
+            className="bg-red-50 text-red-600 px-3 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-red-100 transition-all border border-red-100"
+            title="Xóa tất cả"
+          >
+            <Trash2 size={18} />
+          </button>
+          <button
+            onClick={handleExportPDF}
+            className="bg-orange-50 text-orange-600 px-3 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-orange-100 transition-all border border-orange-100"
+            title="Xuất PDF"
+          >
+            <FileText size={18} />
+          </button>
+          <button
+            onClick={handleExport}
+            className="bg-green-50 text-green-600 px-3 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-green-100 transition-all border border-green-100"
+            title="Xuất file"
+          >
+            <FileSpreadsheet size={18} />
+          </button>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2 hover:bg-blue-700 transition-all shadow-lg shadow-blue-200"
+          >
+            <Plus size={20} />
+            Ghi nợ mới
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

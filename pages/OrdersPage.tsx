@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { ShoppingBag, Search, Plus, Calendar, Eye, Trash2, ArrowLeft, Package, CheckCircle2, Clock, ShoppingCart, Minus, ChevronRight, AlertCircle, Printer, Download, Check, Zap, Table, Grid, Info, X, Tag, Truck, Gift, MoreVertical, CreditCard, Edit2, Image as ImageIcon } from 'lucide-react';
+import { ShoppingBag, Search, Plus, Calendar, Eye, Trash2, ArrowLeft, Package, CheckCircle2, Clock, ShoppingCart, Minus, ChevronRight, AlertCircle, Printer, Download, Check, Zap, Table, Grid, Info, X, Tag, Truck, Gift, MoreVertical, CreditCard, Edit2, Image as ImageIcon, FileText, FileSpreadsheet } from 'lucide-react';
 import { db } from '../services/storage';
 import { Order, OrderItem, Product, ProductVariant } from '../types';
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -206,6 +206,32 @@ const OrdersPage: React.FC = () => {
     }
   };
 
+  const handleClearAll = async () => {
+    if (confirm('Bạn có chắc chắn muốn xóa TẤT CẢ đơn hàng? Hành động này không thể hoàn tác!')) {
+      await db.clearAllOrders();
+      refreshData();
+    }
+  };
+
+  const handleExportAll = () => {
+    import('../utils/csvExport').then(({ exportToCSV }) => {
+      const dataToExport = orders.map(o => ({
+        id: o.id,
+        date: new Date(o.date).toLocaleString('vi-VN'),
+        items: o.items.map(i => `${i.name} x${i.quantity}`).join('; '),
+        total: o.totalAmount,
+        status: o.status
+      }));
+      exportToCSV(dataToExport, 'danh_sach_don_hang');
+    });
+  };
+
+  const handleExportAllPDF = () => {
+    import('../utils/pdfExport').then(({ exportOrdersToPDF }) => {
+      exportOrdersToPDF(orders);
+    });
+  };
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* List Orders View */}
@@ -221,13 +247,36 @@ const OrdersPage: React.FC = () => {
                 <p className="text-gray-500 text-sm">Theo dõi doanh số và lịch sử bán hàng.</p>
               </div>
             </div>
-            <button
-              onClick={() => { setCart([]); setIsPosOpen(true); setError(null); setCheckoutSuccess(null); }}
-              className="bg-green-600 text-white px-5 py-2.5 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-green-700 transition-all shadow-lg shadow-green-100"
-            >
-              <Plus size={20} />
-              Tạo đơn hàng mới
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleClearAll}
+                className="bg-red-50 text-red-600 px-3 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-red-100 transition-all border border-red-100 shadow-sm"
+                title="Xóa tất cả"
+              >
+                <Trash2 size={18} />
+              </button>
+              <button
+                onClick={handleExportAllPDF}
+                className="bg-orange-50 text-orange-600 px-3 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-orange-100 transition-all border border-orange-100 shadow-sm"
+                title="Xuất PDF"
+              >
+                <FileText width={18} />
+              </button>
+              <button
+                onClick={handleExportAll}
+                className="bg-blue-50 text-blue-600 px-3 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-blue-100 transition-all border border-blue-100 shadow-sm"
+                title="Xuất Excel"
+              >
+                <FileSpreadsheet width={18} />
+              </button>
+              <button
+                onClick={() => { setCart([]); setIsPosOpen(true); setError(null); setCheckoutSuccess(null); }}
+                className="bg-green-600 text-white px-5 py-2.5 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-green-700 transition-all shadow-lg shadow-green-100"
+              >
+                <Plus size={20} />
+                Tạo đơn hàng mới
+              </button>
+            </div>
           </div>
 
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">

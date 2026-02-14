@@ -1,104 +1,165 @@
 
 import { MockData, Order, Product, Debt } from '../types';
+import { supabase } from './supabaseClient';
 
-const STORAGE_KEY = 'sobanhang_todo_db_sim';
+// Helper to format date
+const formatDate = (date: string) => new Date(date).toISOString();
 
-const initialData: MockData = {
-  orders: [
-    {
-      id: 'ord-1',
-      status: 'completed',
-      items: [{ productId: '1', variantId: 'v1', name: 'Trà sữa truyền thống', variantName: 'Size M', quantity: 2, price: 25000 }],
-      totalAmount: 50000,
-      date: new Date(Date.now() - 86400000).toISOString()
+export const db = {
+  async connect(): Promise<void> {
+    // Supabase client is already initialized
+    return Promise.resolve();
+  },
+
+  // --- PRODUCTS ---
+  async getProducts(): Promise<Product[]> {
+    const { data, error } = await supabase
+      .from('products')
+      .select(`*, variants:product_variants(*)`)
+      .order('name');
+
+    if (error) {
+      console.error('Error fetching products:', error);
+      return [];
     }
-  ],
-  products: [
-    {
-      id: '1',
-      name: 'Trà sữa truyền thống',
-      unit: 'Ly',
-      basePrice: 25000,
-      costPrice: 15000,
-      totalStock: 20,
-      variants: [
-        { id: 'v1', name: 'Size M', price: 25000, stock: 10 },
-        { id: 'v2', name: 'Size L', price: 35000, stock: 10 }
-      ],
-      inStock: true,
+
+    return data.map((p: any) => ({
+      id: p.id,
+      name: p.name,
+      unit: p.unit,
+      basePrice: Number(p.base_price),
+      costPrice: Number(p.cost_price),
+      totalStock: p.total_stock,
+      variants: p.variants.map((v: any) => ({
+        id: v.id,
+        name: v.name,
+        price: Number(v.price),
+        stock: v.stock
+      })),
+      inStock: p.total_stock > 0,
       trackStock: true,
       applyMaterials: false,
       allowWholesaleView: false,
       showOnWebsite: true,
-      images: []
-    }
-  ],
-  debts: [
-    { id: 'd-1', type: 'customer_receivable', contactName: 'Anh Tuấn', remindStatus: 'due', amount: 1000000, date: new Date().toISOString(), note: 'Nợ tiền hàng Trà Sữa' },
-  ]
-};
-
-export const db = {
-  async connect(): Promise<void> {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(initialData));
-    }
-    return Promise.resolve();
-  },
-
-  async queryAll(): Promise<MockData> {
-    await this.connect();
-    const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-    return Promise.resolve(data);
-  },
-
-  async save(data: MockData): Promise<void> {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    return Promise.resolve();
-  },
-
-  async getProducts(): Promise<Product[]> {
-    const data = await this.queryAll();
-    return data.products;
+      images: p.image_url ? [p.image_url] : []
+    }));
   },
 
   async addProduct(product: Product): Promise<void> {
-    const data = await this.queryAll();
-    data.products.push(product);
-    await this.save(data);
+    const { data: prodData, error: prodError } = await supabase
+      .from('products')
+      .insert({
+        name: product.name,
+        base_price: product.basePrice,
+        cost_price: product.costPrice,
+        total_stock: product.totalStock,
+        unit: product.unit,
+        image_url: product.images?.[0]
+      })
+      .select()
+      .single();
+
+    if (prodError || !prodData) {
+      console.error('Error adding product:', prodError);
+      return;
+    }
+
+    if (product.variants.length > 0) {
+      const variantsPayload = product.variants.map(v => ({
+        product_id: prodData.id,
+        name: v.name,
+        price: v.price,
+        stock: v.stock
+      }));
+
+      const { error: varError } = await supabase
+        .from('product_variants')
+        .insert(variantsPayload);
+
+      if (varError) console.error('Error adding variants:', varError);
+    }
   },
 
-  async updateProduct(updatedProduct: Product): Promise<void> {
-    const data = await this.queryAll();
-    data.products = data.products.map(p => p.id === updatedProduct.id ? updatedProduct : p);
-    await this.save(data);
+  // NOTE: Simplify update/delete for MVP
+  async updateProduct(product: Product): Promise<void> {
+    await supabase
+      .from('products')
+      .update({
+        name: product.name,
+        base_price: product.basePrice,
+        cost_price: product.costPrice,
+        total_stock: product.totalStock,
+        unit: product.unit,
+        image_url: product.images?.[0]
+      })
+      .eq('id', product.id);
+
+    // Update variants if needed (simplified: just update stocks/prices if specific logic required later)
+    // For now, we assume variants are managed separately or this is a simple product
   },
 
   async deleteProduct(id: string): Promise<void> {
-    const data = await this.queryAll();
-    data.products = data.products.filter(p => p.id !== id);
-    await this.save(data);
+    await supabase.from('products').delete().eq('id', id);
   },
 
+
+  async clearAllProducts(): Promise<void> {
+    const { data: products } = await supabase.from('products').select('id');
+    if (!products || products.length === 0) return;
+
+    const ids = products.map((p: any) => p.id);
+
+    // Manual cascading delete attempt (safe)
+    await supabase.from('product_variants').delete().in('product_id', ids);
+
+    const { error } = await supabase.from('products').delete().in('id', ids);
+
+    if (error) {
+      console.error('Error clearing products:', error);
+      alert('Lỗi xóa sản phẩm: ' + error.message);
+    }
+  },
+
+  // --- ORDERS ---
   async getOrders(): Promise<Order[]> {
-    const data = await this.queryAll();
-    return data.orders;
+    const { data, error } = await supabase
+      .from('orders')
+      .select(`*, items:order_items(*)`)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching orders:', error);
+      return [];
+    }
+
+    return data.map((o: any) => ({
+      id: o.id,
+      status: o.status as any,
+      date: o.created_at,
+      totalAmount: Number(o.total_amount),
+      items: o.items.map((i: any) => ({
+        productId: i.product_id,
+        variantId: i.variant_id,
+        name: i.product_name,
+        variantName: i.variant_name,
+        quantity: i.quantity,
+        price: Number(i.price)
+      }))
+    }));
   },
 
   async createOrder(order: Order): Promise<{ success: boolean; message?: string }> {
-    const data = await this.queryAll();
+    // 1. Client-side stock check (Basic)
+    const products = await this.getProducts();
 
     for (const item of order.items) {
-      const product = data.products.find(p => p.id === item.productId);
+      const product = products.find(p => p.id === item.productId);
       if (product) {
         if (product.variants.length === 0) {
-          // Sản phẩm không có biến thể, check totalStock
           if (product.totalStock < item.quantity) {
-            return { success: false, message: `Sản phẩm ${item.name} hết hàng (Hiện có: ${product.totalStock}).` };
+            return { success: false, message: `Sản phẩm ${item.name} hết hàng.` };
           }
         } else {
-          // Sản phẩm có biến thể
           const variant = product.variants.find(v => v.id === item.variantId);
           if (!variant || variant.stock < item.quantity) {
             return { success: false, message: `Sản phẩm ${item.name} (${item.variantName}) không đủ tồn kho.` };
@@ -107,38 +168,121 @@ export const db = {
       }
     }
 
-    order.items.forEach(item => {
-      const product = data.products.find(p => p.id === item.productId);
-      if (product) {
-        if (product.variants.length === 0) {
-          product.totalStock -= item.quantity;
-        } else {
-          const variant = product.variants.find(v => v.id === item.variantId);
-          if (variant) variant.stock -= item.quantity;
-          product.totalStock = product.variants.reduce((sum, v) => sum + v.stock, 0);
+    // 2. Insert Order
+    const { data: orderData, error: orderError } = await supabase
+      .from('orders')
+      .insert({
+        status: 'completed',
+        total_amount: order.totalAmount,
+        customer_name: 'Guest'
+      })
+      .select()
+      .single();
+
+    if (orderError || !orderData) {
+      return { success: false, message: 'Lỗi tạo đơn: ' + orderError?.message };
+    }
+
+    // 3. Insert Items
+    const orderItems = order.items.map(item => ({
+      order_id: orderData.id,
+      product_id: item.productId,
+      variant_id: (item.variantId === 'default' || !item.variantId) ? null : item.variantId,
+      product_name: item.name,
+      variant_name: item.variantName,
+      quantity: item.quantity,
+      price: item.price
+    }));
+
+    const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
+    if (itemsError) console.error('Error items:', itemsError);
+
+    // 4. Deduct Stock (Optimistic)
+    for (const item of order.items) {
+      if (item.variantId) {
+        const product = products.find(p => p.id === item.productId);
+        if (product) {
+          if (product.variants.length > 0) {
+            const v = product.variants.find(v => v.id === item.variantId);
+            if (v) {
+              await supabase.from('product_variants')
+                .update({ stock: v.stock - item.quantity })
+                .eq('id', v.id);
+            }
+          } else {
+            await supabase.from('products')
+              .update({ total_stock: product.totalStock - item.quantity })
+              .eq('id', product.id);
+          }
         }
       }
-    });
+    }
 
-    order.status = 'completed';
-    data.orders.unshift(order);
-    await this.save(data);
     return { success: true };
   },
 
+
+  async clearAllOrders(): Promise<void> {
+    const { data: orders } = await supabase.from('orders').select('id');
+    if (!orders || orders.length === 0) return;
+
+    const ids = orders.map((o: any) => o.id);
+
+    // Manual cascading delete attempt
+    await supabase.from('order_items').delete().in('order_id', ids);
+
+    const { error } = await supabase.from('orders').delete().in('id', ids);
+
+    if (error) {
+      console.error('Error clearing orders:', error);
+      alert('Lỗi xóa đơn hàng: ' + error.message);
+    }
+  },
+
+  // --- DEBTS ---
   async getDebts(): Promise<Debt[]> {
-    const data = await this.queryAll();
-    return data.debts;
+    const { data, error } = await supabase
+      .from('debts')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) return [];
+
+    return data.map((d: any) => ({
+      id: d.id,
+      type: d.type as any,
+      contactName: d.contact_name,
+      remindStatus: 'due',
+      amount: Number(d.amount),
+      date: d.created_at,
+      note: d.note
+    }));
   },
 
   async addDebt(debt: Debt): Promise<void> {
-    const data = await this.queryAll();
-    data.debts.push(debt);
-    await this.save(data);
+    await supabase.from('debts').insert({
+      contact_name: debt.contactName,
+      amount: debt.amount,
+      type: debt.type,
+      note: debt.note
+    });
   },
 
-  async clear(): Promise<void> {
-    localStorage.removeItem(STORAGE_KEY);
-    window.location.reload();
+
+  async clearAllDebts(): Promise<void> {
+    console.log('clearAllDebts called');
+    const { data: debts } = await supabase.from('debts').select('id');
+    console.log('Debts to delete:', debts?.length);
+    if (!debts || debts.length === 0) return;
+
+    const ids = debts.map((d: any) => d.id);
+    const { error } = await supabase.from('debts').delete().in('id', ids);
+
+    if (error) {
+      console.error('Error clearing debts:', error);
+      alert('Lỗi xóa sổ nợ: ' + error.message);
+    } else {
+      console.log('Debts cleared successfully');
+    }
   }
 };
