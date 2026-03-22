@@ -20,7 +20,7 @@ const TodoCard: React.FC<TodoCardProps> = ({ config, count }) => {
       <div className="flex justify-between items-start mb-6">
         <div className={`p-4 rounded-2xl transition-all duration-300 ${
           count > 0 
-          ? 'bg-green-50 text-green-600 group-hover:bg-green-600 group-hover:text-white shadow-lg shadow-green-100/50' 
+          ? 'bg-primary-light text-primary group-hover:bg-primary group-hover:text-white shadow-lg shadow-primary-light' 
           : 'bg-slate-50 text-slate-400'
         }`}>
           {Icon ? <Icon size={24} strokeWidth={2.5} /> : <div className="w-6 h-6" />}
@@ -33,7 +33,7 @@ const TodoCard: React.FC<TodoCardProps> = ({ config, count }) => {
       </div>
 
       <div className="flex-1">
-        <h3 className="text-base font-black text-slate-900 group-hover:text-green-600 transition-colors leading-tight">
+        <h3 className="text-base font-black text-slate-900 group-hover:text-primary transition-colors leading-tight">
           {config.title}
         </h3>
         <p className="text-xs text-slate-500 mt-2 leading-relaxed font-medium">
@@ -44,11 +44,11 @@ const TodoCard: React.FC<TodoCardProps> = ({ config, count }) => {
       <div className="mt-8 pt-5 border-t border-slate-50 flex items-end justify-between">
         <div className="flex flex-col">
           <span className="text-[10px] uppercase font-black text-slate-300 tracking-[0.2em] mb-1">Số lượng</span>
-          <span className={`text-4xl font-black tracking-tight ${count > 0 ? 'text-green-600' : 'text-slate-200'}`}>
+          <span className={`text-4xl font-black tracking-tight ${count > 0 ? 'text-primary' : 'text-slate-200'}`}>
             {count}
           </span>
         </div>
-        <div className="w-10 h-10 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-green-50 group-hover:text-green-600 transition-all">
+        <div className="w-10 h-10 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-primary-light group-hover:text-primary transition-all">
           <LucideIcons.ArrowRight size={20} />
         </div>
       </div>

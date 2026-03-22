@@ -4,10 +4,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sổ Bán Hàng - Quản lý kinh doanh</title>
+    <title>Bán Hàng - Quản lý kinh doanh</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
         rel="stylesheet">
+    <style type="text/css">
+        :root {
+            --primary-color: #16a34a;
+            --primary-light: rgba(22, 163, 74, 0.05);
+        }
+    </style>
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -16,6 +22,10 @@
                     fontFamily: {
                         sans: ['Inter', 'sans-serif'],
                     },
+                    colors: {
+                        primary: 'var(--primary-color)',
+                        'primary-light': 'var(--primary-light)',
+                    }
                 }
             }
         }
@@ -64,18 +74,7 @@
             color: inherit;
         }
     </style>
-    <script type="importmap">
-{
-  "imports": {
-    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
-    "@google/genai": "https://esm.sh/@google/genai@^1.40.0",
-    "react/": "https://esm.sh/react@^19.2.4/",
-    "react": "https://esm.sh/react@^19.2.4",
-    "react-router-dom": "https://esm.sh/react-router-dom@^7.13.0"
-  }
-}
-</script>
+
 </head>
 
 <body class="bg-slate-50">

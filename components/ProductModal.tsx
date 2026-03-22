@@ -14,7 +14,7 @@ const Label = ({ children, required }: { children?: React.ReactNode, required?: 
 const Input = (props: React.InputHTMLAttributes<HTMLInputElement>) => (
   <input
     {...props}
-    className={`w-full bg-[#262626] border border-[#333] rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:border-green-500 transition-all ${props.className}`}
+    className={`w-full bg-[#262626] border border-[#333] rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:border-primary transition-all ${props.className}`}
   />
 );
 
@@ -32,7 +32,7 @@ const Toggle = ({ active, onChange, label, subLabel }: { active: boolean, onChan
     <button
       type="button"
       onClick={() => onChange(!active)}
-      className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${active ? 'bg-green-600' : 'bg-[#404040]'}`}
+      className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${active ? 'bg-primary' : 'bg-[#404040]'}`}
     >
       <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${active ? 'translate-x-5' : 'translate-x-0'}`} />
     </button>
@@ -146,7 +146,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, in
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm">
       <div className="bg-[#121212] w-full h-full md:max-w-[1200px] md:h-[90vh] md:rounded-lg overflow-hidden flex flex-col shadow-2xl">
         {/* Header */}
-        <div className="bg-[#10b981] px-6 py-3 flex justify-between items-center text-white">
+        <div className="bg-primary px-6 py-3 flex justify-between items-center text-white">
           <h2 className="text-base font-bold">{initialProduct ? 'Chỉnh sửa sản phẩm' : 'Tạo sản phẩm mới'}</h2>
           <button onClick={onClose} className="p-1 hover:bg-white/20 rounded-full transition-colors">
             <X size={20} />
@@ -180,7 +180,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, in
                     <select 
                       value={category} 
                       onChange={e => setCategory(e.target.value)}
-                      className="w-full bg-[#262626] border border-[#333] rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:border-green-500 appearance-none"
+                      className="w-full bg-[#262626] border border-[#333] rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:border-primary appearance-none"
                     >
                       <option value="">Chọn 1 hoặc nhiều</option>
                       <option value="Đồ uống">Đồ uống</option>
@@ -271,10 +271,10 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, in
               <div className="flex justify-between mb-4">
                  <SectionTitle>Ảnh sản phẩm (0/10)</SectionTitle>
               </div>
-              <div className="aspect-square bg-[#262626] border-2 border-dashed border-[#333] rounded-xl flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:border-green-500/50 hover:bg-[#2a2a2a] transition-all group">
+              <div className="aspect-square bg-[#262626] border-2 border-dashed border-[#333] rounded-xl flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:border-primary/50 hover:bg-[#2a2a2a] transition-all group">
                  <div className="w-16 h-16 bg-[#333] rounded-full flex items-center justify-center mb-4 group-hover:bg-[#3b3b3b]">
                     <ImageIcon size={32} />
-                    <div className="absolute translate-x-4 translate-y-4 bg-green-500 text-white rounded-full p-1 border-2 border-[#262626]">
+                    <div className="absolute translate-x-4 translate-y-4 bg-primary text-white rounded-full p-1 border-2 border-[#262626]">
                       <Plus size={14} />
                     </div>
                  </div>
@@ -290,7 +290,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, in
                    <button 
                     type="button" 
                     onClick={() => setInStock(true)}
-                    className={`px-3 py-1 text-[11px] font-bold rounded ${inStock ? 'bg-green-600/20 text-green-500' : 'text-gray-500'}`}
+                    className={`px-3 py-1 text-[11px] font-bold rounded ${inStock ? 'bg-primary-light text-primary' : 'text-gray-500'}`}
                    >
                      Còn hàng
                    </button>
@@ -340,7 +340,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, in
           </button>
           <button 
             onClick={handleSubmit}
-            className="px-8 py-2 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700 shadow-lg shadow-green-900/20 active:scale-95 transition-all"
+            className="px-8 py-2 bg-primary text-white rounded-lg text-sm font-bold hover:opacity-90 shadow-lg shadow-primary-light active:scale-95 transition-all"
           >
             Xác nhận
           </button>

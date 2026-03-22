@@ -44,7 +44,7 @@ const DebtModal: React.FC<DebtModalProps> = ({ isOpen, onClose, onSave }) => {
       <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
         <div className="p-6 border-b flex justify-between items-center bg-gray-50">
           <h3 className="font-bold text-gray-800 flex items-center gap-2">
-            <Users size={20} className="text-blue-600" />
+            <Users size={20} className="text-primary" />
             Ghi nợ mới
           </h3>
           <button onClick={onClose} className="p-1 hover:bg-gray-200 rounded-full transition-colors">
@@ -57,7 +57,7 @@ const DebtModal: React.FC<DebtModalProps> = ({ isOpen, onClose, onSave }) => {
             <button
               type="button"
               onClick={() => setType('customer_receivable')}
-              className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${type === 'customer_receivable' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+              className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${type === 'customer_receivable' ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
             >
               KHÁCH NỢ
             </button>
@@ -80,7 +80,7 @@ const DebtModal: React.FC<DebtModalProps> = ({ isOpen, onClose, onSave }) => {
                 value={contactName}
                 onChange={(e) => setContactName(e.target.value)}
                 placeholder="Tên khách hàng hoặc NCC"
-                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-primary outline-none text-sm"
               />
             </div>
           </div>
@@ -108,7 +108,7 @@ const DebtModal: React.FC<DebtModalProps> = ({ isOpen, onClose, onSave }) => {
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-primary outline-none text-sm"
               />
             </div>
           </div>
@@ -129,7 +129,7 @@ const DebtModal: React.FC<DebtModalProps> = ({ isOpen, onClose, onSave }) => {
 
           <button
             type="submit"
-            className={`w-full py-4 rounded-2xl font-bold text-white shadow-lg transition-all active:scale-95 ${type === 'customer_receivable' ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-100' : 'bg-red-600 hover:bg-red-700 shadow-red-100'}`}
+            className={`w-full py-4 rounded-2xl font-bold text-white shadow-lg transition-all active:scale-95 ${type === 'customer_receivable' ? 'bg-primary hover:opacity-90 shadow-primary-light' : 'bg-red-600 hover:bg-red-700 shadow-red-100'}`}
           >
             Lưu khoản nợ
           </button>

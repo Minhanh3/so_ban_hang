@@ -1,0 +1,44 @@
+[RESPONSE] 200 http://localhost:3000/#/orders
+[RESPONSE] 200 http://localhost:3000/src/main.tsx?t=1774179613100
+[RESPONSE] 200 http://localhost:3000/@react-refresh
+[RESPONSE] 200 http://localhost:3000/@vite/client
+[RESPONSE] 200 http://localhost:3000/node_modules/vite/dist/client/env.mjs
+[RESPONSE] 200 https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap
+[RESPONSE] 302 https://cdn.tailwindcss.com/
+[RESPONSE] 200 https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js
+[RESPONSE] 200 https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js
+[RESPONSE] 200 https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js
+[RESPONSE] 200 https://cdn.tailwindcss.com/3.4.17
+[CONSOLE] warn: cdn.tailwindcss.com should not be used in production. To use Tailwind CSS in production, install it as a PostCSS plugin or use the Tailwind CLI: https://tailwindcss.com/docs/installation
+[CONSOLE] debug: [vite] connecting...
+[RESPONSE] 200 http://localhost:3000/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=982fd34a
+[RESPONSE] 200 http://localhost:3000/node_modules/.vite/deps/react.js?v=982fd34a
+[RESPONSE] 200 http://localhost:3000/App.tsx
+[RESPONSE] 200 http://localhost:3000/node_modules/.vite/deps/chunk-S73QDKPN.js?v=27043839
+[RESPONSE] 200 http://localhost:3000/node_modules/.vite/deps/chunk-G3PMV62Z.js?v=27043839
+[RESPONSE] 200 http://localhost:3000/components/Layout.tsx
+[RESPONSE] 200 http://localhost:3000/pages/TodoPage.tsx
+[RESPONSE] 200 http://localhost:3000/node_modules/.vite/deps/react-dom_client.js?v=3dfa0ad0
+[RESPONSE] 200 http://localhost:3000/pages/ProductsPage.tsx
+[RESPONSE] 200 http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=219c24dd
+[RESPONSE] 200 http://localhost:3000/pages/OrdersPage.tsx
+[RESPONSE] 200 http://localhost:3000/pages/DebtsPage.tsx
+[RESPONSE] 200 http://localhost:3000/pages/FinancePage.tsx
+[RESPONSE] 200 http://localhost:3000/components/AIAssistant.tsx
+[RESPONSE] 200 http://localhost:3000/constants.tsx
+[RESPONSE] 200 http://localhost:3000/services/storage.ts
+[RESPONSE] 200 http://localhost:3000/components/TodoCard.tsx
+[RESPONSE] 200 http://localhost:3000/node_modules/.vite/deps/chunk-Z5AKTONR.js?v=27043839
+[RESPONSE] 200 http://localhost:3000/components/ProductModal.tsx
+[RESPONSE] 200 http://localhost:3000/components/DebtModal.tsx
+[RESPONSE] 200 http://localhost:3000/services/gemini.ts
+[RESPONSE] 200 http://localhost:3000/services/supabaseClient.ts
+[RESPONSE] 200 http://localhost:3000/node_modules/.vite/deps/lucide-react.js?v=01019705
+[RESPONSE] 200 http://localhost:3000/node_modules/.vite/deps/@google_genai.js?v=b7e26a18
+[RESPONSE] 200 http://localhost:3000/node_modules/.vite/deps/@supabase_supabase-js.js?v=f8545721
+[RESPONSE] 200 http://localhost:3000/node_modules/.vite/deps/recharts.js?v=fdd90f2c
+[CONSOLE] info: %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[PAGE_ERROR] Error: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY must be defined in .env.local
+[CONSOLE] error: Failed to load resource: the server responded with a status of 404 (Not Found)
+[RESPONSE] 404 http://localhost:3000/favicon.ico
+[CONSOLE] debug: [vite] connected.

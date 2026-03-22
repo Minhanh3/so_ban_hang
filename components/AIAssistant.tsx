@@ -42,12 +42,12 @@ const AIAssistant: React.FC = () => {
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
       {isOpen && (
         <div className="w-80 md:w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col mb-4 overflow-hidden max-h-[500px]">
-          <div className="bg-blue-600 p-4 text-white flex justify-between items-center">
+          <div className="bg-primary p-4 text-white flex justify-between items-center">
             <div className="flex items-center gap-2">
               <Bot size={20} />
               <span className="font-semibold">Trợ lý AI (SQL Assistant)</span>
             </div>
-            <button onClick={() => setIsOpen(false)} className="hover:bg-blue-700 p-1 rounded">
+            <button onClick={() => setIsOpen(false)} className="hover:bg-white/20 p-1 rounded transition-colors">
               <X size={20} />
             </button>
           </div>
@@ -60,7 +60,7 @@ const AIAssistant: React.FC = () => {
             )}
             {messages.map((m, i) => (
               <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[85%] rounded-2xl p-3 text-sm ${m.role === 'user' ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white border text-gray-800 rounded-tl-none shadow-sm'}`}>
+                <div className={`max-w-[85%] rounded-2xl p-3 text-sm ${m.role === 'user' ? 'bg-primary text-white rounded-tr-none' : 'bg-white border text-gray-800 rounded-tl-none shadow-sm'}`}>
                   {m.content}
                 </div>
               </div>
@@ -68,7 +68,9 @@ const AIAssistant: React.FC = () => {
             {isLoading && (
               <div className="flex justify-start">
                 <div className="bg-white border rounded-2xl p-3 shadow-sm rounded-tl-none">
-                  <Loader2 className="animate-spin text-blue-600" size={16} />
+                   <div className="bg-primary/10 rounded-full p-1 leading-none">
+                    <Loader2 className="animate-spin text-primary" size={16} />
+                  </div>
                 </div>
               </div>
             )}
@@ -82,13 +84,13 @@ const AIAssistant: React.FC = () => {
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSend()}
               placeholder="Hỏi về dữ liệu..."
-              className="flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               disabled={isLoading}
             />
             <button 
               onClick={handleSend}
               disabled={isLoading}
-              className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700"
+              className="bg-primary text-white p-2 rounded-lg hover:opacity-90 active:scale-95 transition-all"
             >
               <Send size={18} />
             </button>
@@ -98,7 +100,7 @@ const AIAssistant: React.FC = () => {
 
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-lg transition-transform hover:scale-105 active:scale-95"
+        className="bg-primary hover:opacity-90 text-white p-4 rounded-full shadow-lg shadow-primary-light transition-transform hover:scale-105 active:scale-95"
       >
         {isOpen ? <X size={24} /> : <MessageSquare size={24} />}
       </button>

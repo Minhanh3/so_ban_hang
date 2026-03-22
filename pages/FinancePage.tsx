@@ -216,14 +216,14 @@ const FinancePage: React.FC = () => {
           <select
             value={timeRange}
             onChange={(e) => setTimeRange(e.target.value as any)}
-            className="bg-white border border-slate-200 text-sm font-bold text-slate-700 py-2.5 px-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20"
+            className="bg-white border border-slate-200 text-sm font-bold text-slate-700 py-2.5 px-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20"
           >
             <option value="this_month">Tháng này</option>
             <option value="last_month">Tháng trước</option>
           </select>
           <button
             onClick={handleExportReport}
-            className="bg-green-600 text-white px-3 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-green-700 transition-colors shadow-lg shadow-green-200"
+            className="bg-primary text-white px-3 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 hover:opacity-90 transition-colors shadow-lg shadow-primary-light"
             title="Xuất Excel"
           >
             <Download size={18} />
@@ -262,13 +262,13 @@ const FinancePage: React.FC = () => {
 
         <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-green-50 text-green-600 rounded-lg">
+            <div className="p-2 bg-primary-light text-primary rounded-lg">
               <BarChart3 size={20} />
             </div>
             <span className="text-slate-500 font-bold text-sm">Lợi nhuận ròng</span>
           </div>
-          <p className="text-3xl font-black text-green-600">{summary.profit.toLocaleString()}đ</p>
-          <div className="flex items-center gap-1 text-green-500 text-xs font-bold mt-2">
+          <p className="text-3xl font-black text-primary">{summary.profit.toLocaleString()}đ</p>
+          <div className="flex items-center gap-1 text-primary text-xs font-bold mt-2">
             <TrendingUp size={14} /> Tỷ suất: {summary.revenue ? Math.round((summary.profit / summary.revenue) * 100) : 0}%
           </div>
         </div>
@@ -291,7 +291,7 @@ const FinancePage: React.FC = () => {
                 />
                 <Legend />
                 <Bar dataKey="revenue" name="Doanh thu" fill="#3B82F6" radius={[4, 4, 0, 0]} maxBarSize={40} />
-                <Bar dataKey="profit" name="Lợi nhuận" fill="#10B981" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                <Bar dataKey="profit" name="Lợi nhuận" fill="var(--primary-color)" radius={[4, 4, 0, 0]} maxBarSize={40} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -315,7 +315,7 @@ const FinancePage: React.FC = () => {
                   dataKey="value"
                 >
                   <Cell fill="#F97316" />
-                  <Cell fill="#10B981" />
+                  <Cell fill="var(--primary-color)" />
                 </Pie>
                 <Tooltip
                   formatter={(value: number, name: string) => [`${value.toLocaleString()}đ`, name]}
@@ -333,7 +333,7 @@ const FinancePage: React.FC = () => {
               <div className="w-3 h-3 rounded-full bg-orange-500"></div> Giá vốn
             </div>
             <div className="flex items-center gap-2 text-sm font-medium text-slate-600">
-              <div className="w-3 h-3 rounded-full bg-green-500"></div> Lợi nhuận
+              <div className="w-3 h-3 rounded-full bg-primary"></div> Lợi nhuận
             </div>
           </div>
         </div>
@@ -362,9 +362,9 @@ const FinancePage: React.FC = () => {
               <span className="text-sm font-bold text-slate-600">Giá vốn hàng bán</span>
               <span className="font-bold text-red-500">-{summary.cost.toLocaleString()}</span>
             </div>
-            <div className="p-4 flex justify-between items-center bg-green-50/50">
+            <div className="p-4 flex justify-between items-center bg-primary-light">
               <span className="text-sm font-black text-slate-800">Lợi nhuận gộp</span>
-              <span className="font-black text-green-600">{summary.profit.toLocaleString()}</span>
+              <span className="font-black text-primary">{summary.profit.toLocaleString()}</span>
             </div>
           </div>
         </div>
@@ -395,7 +395,7 @@ const FinancePage: React.FC = () => {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-black text-green-600 text-sm">{item.profit.toLocaleString()}đ</p>
+                    <p className="font-black text-primary text-sm">{item.profit.toLocaleString()}đ</p>
                     <p className="text-[10px] font-bold text-slate-400">Lãi/sp</p>
                   </div>
                 </div>

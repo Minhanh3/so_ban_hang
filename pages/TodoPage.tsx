@@ -68,7 +68,7 @@ const TodoPage: React.FC = () => {
           disabled={isRefreshing}
           className="inline-flex items-center justify-center gap-2 bg-white border border-slate-200 px-6 py-3 rounded-2xl text-sm font-bold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm disabled:opacity-50 active:scale-95"
         >
-          <RefreshCcw size={18} className={`${isRefreshing ? 'animate-spin' : ''} text-green-600`} />
+          <RefreshCcw size={18} className={`${isRefreshing ? 'animate-spin' : ''} text-primary`} />
           Làm mới dữ liệu
         </button>
       </div>
@@ -79,13 +79,13 @@ const TodoPage: React.FC = () => {
           <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Phím tắt tác vụ</h3>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <Link to="/pos" className="flex items-center gap-4 p-5 bg-green-600 rounded-3xl text-white shadow-xl shadow-green-100 hover:bg-green-700 hover:-translate-y-1 transition-all group">
+          <Link to="/pos" className="flex items-center gap-4 p-5 bg-primary rounded-3xl text-white shadow-xl shadow-primary-light hover:opacity-90 hover:-translate-y-1 transition-all group">
             <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
               <ShoppingCart size={24} />
             </div>
             <div className="flex-1">
               <p className="font-bold text-lg">Bán hàng</p>
-              <p className="text-green-100 text-xs font-medium">Mở màn hình POS nhanh</p>
+              <p className="opacity-90 text-xs font-medium">Mở màn hình POS nhanh</p>
             </div>
             <ChevronRight size={20} className="opacity-50 group-hover:opacity-100" />
           </Link>
@@ -129,7 +129,7 @@ const TodoPage: React.FC = () => {
       {/* Info Card */}
       <section className="bg-slate-900 rounded-[2.5rem] p-8 md:p-12 text-white relative overflow-hidden shadow-2xl">
         <div className="relative z-10 max-w-2xl">
-          <span className="inline-block bg-green-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-6">Hệ thống ổn định</span>
+          <span className="inline-block bg-primary text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-6">Hệ thống ổn định</span>
           <h3 className="text-3xl md:text-4xl font-black mb-6 leading-tight">Mô phỏng cơ sở dữ liệu SQL Real-time</h3>
           <p className="text-slate-400 mb-8 leading-relaxed font-medium text-lg">
             Ứng dụng đang chạy trên cơ chế LocalStorage SQL-Engine mô phỏng, đảm bảo dữ liệu được lưu trữ an toàn ngay cả khi tải lại trang.

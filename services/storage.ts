@@ -284,5 +284,15 @@ export const db = {
     } else {
       console.log('Debts cleared successfully');
     }
+  },
+
+  // --- COMPOSITE ---
+  async queryAll(): Promise<{ products: Product[], orders: Order[], debts: Debt[] }> {
+    const [products, orders, debts] = await Promise.all([
+      this.getProducts(),
+      this.getOrders(),
+      this.getDebts()
+    ]);
+    return { products, orders, debts };
   }
 };

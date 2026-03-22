@@ -113,7 +113,7 @@ const ProductsPage: React.FC = () => {
           </button>
           <button
             onClick={() => { setEditingProduct(undefined); setIsModalOpen(true); }}
-            className="bg-green-600 text-white px-6 py-3 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-green-700 transition-all shadow-lg shadow-green-100 active:scale-95"
+            className="bg-primary text-white px-6 py-3 rounded-2xl font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-lg shadow-primary-light active:scale-95"
           >
             <Plus size={20} />
             Thêm mới
@@ -130,7 +130,7 @@ const ProductsPage: React.FC = () => {
               placeholder="Tìm kiếm theo tên sản phẩm, SKU..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-green-500 outline-none transition-all text-sm font-medium"
+              className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary outline-none transition-all text-sm font-medium"
             />
           </div>
           <button className="px-4 py-3 border border-slate-200 rounded-2xl flex items-center justify-center gap-2 text-slate-600 font-bold text-sm bg-white hover:bg-slate-50">
@@ -159,7 +159,7 @@ const ProductsPage: React.FC = () => {
                         <Box size={20} />
                       </div>
                       <div>
-                        <p className="font-bold text-slate-900 group-hover:text-green-600 transition-colors">{product.name}</p>
+                        <p className="font-bold text-slate-900 group-hover:text-primary transition-colors">{product.name}</p>
                         <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">{product.sku || 'Không có SKU'}</p>
                       </div>
                     </div>
@@ -173,7 +173,7 @@ const ProductsPage: React.FC = () => {
                       ? 'bg-red-50 text-red-600'
                       : product.totalStock <= 10
                         ? 'bg-amber-50 text-amber-600'
-                        : 'bg-green-50 text-green-600'
+                        : 'bg-primary-light text-primary'
                       }`}>
                       {product.totalStock} {product.unit || 'món'}
                     </span>
