@@ -165,13 +165,17 @@ const OrdersPage: React.FC = () => {
 
   const handleCheckout = async () => {
     if (cart.length === 0) return;
+    const settings = await db.getShopSettings();
     const totalAmount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const newOrder: Order = {
       id: 'ord-' + Date.now(),
       status: 'completed',
       date: new Date().toISOString(),
       items: [...cart],
-      totalAmount
+      totalAmount,
+      distributorName: settings.distributor.name,
+      distributorPhone: settings.distributor.phone,
+      distributorAddress: settings.distributor.address,
     };
 
     const result = await db.createOrder(newOrder);
@@ -184,22 +188,76 @@ const OrdersPage: React.FC = () => {
     }
   };
 
-  const handleExportPDF = (order: Order) => {
+  const handleExportPDF = async (order: Order) => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
-    const itemsHtml = order.items.map(item => `
+
+    const settings = await db.getShopSettings();
+    const distributorName = order.distributorName || settings.distributor.name || 'Chưa cấu hình';
+    const distributorPhone = order.distributorPhone || settings.distributor.phone || 'Chưa cấu hình';
+    const distributorAddress = order.distributorAddress || settings.distributor.address || 'Chưa cấu hình';
+    const totalQty = order.items.reduce((sum, item) => sum + item.quantity, 0);
+
+    const itemsHtml = order.items.map((item) => `
       <tr>
-        <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${item.name}<br/><small>${item.variantName}</small></td>
-        <td style="text-align: center;">${item.quantity}</td>
-        <td style="text-align: right;">${item.price.toLocaleString()}đ</td>
-        <td style="text-align: right;">${(item.price * item.quantity).toLocaleString()}đ</td>
+        <td style="padding:8px; border:1px solid #111;">${item.name}</td>
+        <td style="padding:8px; border:1px solid #111;">${item.variantName}</td>
+        <td style="padding:8px; border:1px solid #111; text-align:center;">${item.quantity}</td>
+        <td style="padding:8px; border:1px solid #111; text-align:right;">${item.price.toLocaleString('vi-VN')}</td>
+        <td style="padding:8px; border:1px solid #111; text-align:right;">${(item.price * item.quantity).toLocaleString('vi-VN')}</td>
       </tr>
     `).join('');
-    printWindow.document.write(`<html><head><title>Hóa đơn #${order.id}</title></head><body><h1>SỔ BÁN HÀNG</h1><p>Mã hóa đơn: #${order.id.slice(-6).toUpperCase()}</p><table style="width:100%">${itemsHtml}</table><h2 style="text-align:right">Tổng: ${order.totalAmount.toLocaleString()}đ</h2></body></html>`);
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Hóa đơn #${order.id}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 24px; color: #111; font-size: 14px; }
+            .muted { color: #444; }
+            .title { text-align: center; font-size: 28px; font-weight: 700; margin: 20px 0 8px; }
+            .subtitle { text-align: center; margin: 0 0 16px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            .summary { width: 320px; margin-left: auto; margin-top: 10px; }
+            .summary-row { display: flex; justify-content: space-between; border-bottom: 1px dashed #ccc; padding: 6px 0; }
+            .summary-total { font-size: 24px; font-weight: 700; }
+          </style>
+        </head>
+        <body>
+          <div>
+            <div style="font-size: 22px; font-weight: 700;">${distributorName}</div>
+            <div class="muted">Địa chỉ: ${distributorAddress}</div>
+            <div class="muted">SĐT: ${distributorPhone}</div>
+          </div>
+
+          <div class="title">HÓA ĐƠN BÁN HÀNG</div>
+          <p class="subtitle muted">Mã đơn: #${order.id.slice(-6).toUpperCase()} - Ngày: ${new Date(order.date).toLocaleString('vi-VN')}</p>
+
+          <table>
+            <thead>
+              <tr>
+                <th style="padding:8px; border:1px solid #111;">Sản phẩm</th>
+                <th style="padding:8px; border:1px solid #111;">Phân loại</th>
+                <th style="padding:8px; border:1px solid #111;">SL</th>
+                <th style="padding:8px; border:1px solid #111;">Giá bán</th>
+                <th style="padding:8px; border:1px solid #111;">Thành tiền</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsHtml}
+            </tbody>
+          </table>
+
+          <div class="summary">
+            <div class="summary-row"><span>Tạm tính (${totalQty} SP)</span><span>${order.totalAmount.toLocaleString('vi-VN')}</span></div>
+            <div class="summary-row summary-total"><span>Tổng cộng</span><span>${order.totalAmount.toLocaleString('vi-VN')}</span></div>
+          </div>
+        </body>
+      </html>
+    `);
     printWindow.document.close();
     printWindow.print();
   };
-
   const closePos = () => {
     setIsPosOpen(false);
     if (location.pathname === '/pos') {
@@ -221,7 +279,10 @@ const OrdersPage: React.FC = () => {
         date: new Date(o.date).toLocaleString('vi-VN'),
         items: o.items.map(i => `${i.name} x${i.quantity}`).join('; '),
         total: o.totalAmount,
-        status: o.status
+        status: o.status,
+        distributor_name: o.distributorName || '',
+        distributor_phone: o.distributorPhone || '',
+        distributor_address: o.distributorAddress || '',
       }));
       exportToCSV(dataToExport, 'danh_sach_don_hang');
     });
@@ -306,13 +367,21 @@ const OrdersPage: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-gray-50 text-sm">
                   {filteredOrders.map(order => (
-                    <tr key={order.id} className="hover:bg-gray-50 transition-colors">
+                    <tr key={order.id} onClick={() => setSelectedOrder(order)} className="hover:bg-gray-50 transition-colors cursor-pointer">
                       <td className="px-6 py-4 font-mono font-medium text-primary">#{order.id.slice(-6).toUpperCase()}</td>
                       <td className="px-6 py-4 text-gray-500">{new Date(order.date).toLocaleString('vi-VN')}</td>
                       <td className="px-6 py-4 truncate max-w-[200px]">{order.items.map(i => i.name).join(', ')}</td>
                       <td className="px-6 py-4 font-bold">{order.totalAmount.toLocaleString()}đ</td>
                       <td className="px-6 py-4 text-right">
-                        <button onClick={() => handleExportPDF(order)} className="p-2 text-gray-400 hover:text-primary"><Download size={18} /></button>
+                                                <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleExportPDF(order);
+                          }}
+                          className="p-2 text-gray-400 hover:text-primary"
+                        >
+                          <Download size={18} />
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -325,6 +394,72 @@ const OrdersPage: React.FC = () => {
               </table>
             </div>
           </div>
+
+          {selectedOrder && (
+            <div
+              className="fixed inset-0 z-50 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center p-4"
+              onClick={() => setSelectedOrder(null)}
+            >
+              <div
+                className="w-full max-w-4xl bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-2 text-gray-900 font-bold">
+                      <Eye size={18} />
+                      <span>Chi tiet don hang #{selectedOrder.id.slice(-6).toUpperCase()}</span>
+                    </div>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Ngay ban: {new Date(selectedOrder.date).toLocaleString('vi-VN')}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setSelectedOrder(null)}
+                    className="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <div className="max-h-[60vh] overflow-y-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 border-b border-gray-100 text-xs font-bold text-gray-500 uppercase">
+                      <tr>
+                        <th className="px-5 py-3 text-left">San pham</th>
+                        <th className="px-5 py-3 text-left">Phan loai</th>
+                        <th className="px-5 py-3 text-center">SL</th>
+                        <th className="px-5 py-3 text-right">Don gia</th>
+                        <th className="px-5 py-3 text-right">Thanh tien</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {selectedOrder.items.map((item, idx) => (
+                        <tr key={`${item.productId}-${item.variantId}-${idx}`}>
+                          <td className="px-5 py-3 font-medium text-gray-800">{item.name}</td>
+                          <td className="px-5 py-3 text-gray-500">{item.variantName}</td>
+                          <td className="px-5 py-3 text-center font-semibold text-gray-700">{item.quantity}</td>
+                          <td className="px-5 py-3 text-right text-gray-700">{item.price.toLocaleString('vi-VN')} VND</td>
+                          <td className="px-5 py-3 text-right font-bold text-gray-900">
+                            {(item.price * item.quantity).toLocaleString('vi-VN')} VND
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between">
+                  <span className="text-sm text-gray-500">
+                    Tong {selectedOrder.items.reduce((sum, i) => sum + i.quantity, 0)} san pham
+                  </span>
+                  <span className="text-lg font-black text-gray-900">
+                    {selectedOrder.totalAmount.toLocaleString('vi-VN')} VND
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
 

@@ -84,30 +84,34 @@ export const exportOrdersToPDF = async (orders: Order[]) => {
 
     const totalAmount = orders.reduce((sum, o) => sum + o.totalAmount, 0);
     const exportDate = new Date().toLocaleString('vi-VN');
+    const distributorName = orders[0]?.distributorName || 'Chưa cấu hình';
+    const distributorPhone = orders[0]?.distributorPhone || 'Chưa cấu hình';
+    const distributorAddress = orders[0]?.distributorAddress || 'Chưa cấu hình';
 
-    const headers = ['Mã Đơn', 'Ngày', 'Sản Phẩm', 'Tổng Tiền', 'Trạng Thái'];
+    const headers = ['Mã đơn', 'Ngày', 'Sản phẩm', 'Tổng tiền', 'Nhà phân phối', 'SĐT NPP'];
     const rows = orders.map(o => [
         `#${o.id.slice(-6).toUpperCase()}`,
         new Date(o.date).toLocaleDateString('vi-VN'),
         o.items.map(i => `${i.name} (x${i.quantity})`).join(', '),
-        o.totalAmount.toLocaleString() + 'đ',
-        o.status === 'completed' ? 'Hoàn thành' : o.status
+        o.totalAmount.toLocaleString('vi-VN') + 'đ',
+        o.distributorName || distributorName,
+        o.distributorPhone || distributorPhone,
     ]);
 
     const container = document.createElement('div');
-    container.style.cssText = 'position:absolute;left:-9999px;top:0;width:800px;background:#fff;padding:30px;font-family:Inter,sans-serif';
+    container.style.cssText = 'position:absolute;left:-9999px;top:0;width:980px;background:#fff;padding:30px;font-family:Inter,sans-serif';
 
     container.innerHTML = `
-        <div style="text-align:center;margin-bottom:20px;border-bottom:2px solid #10b981;padding-bottom:15px">
-            <h1 style="font-size:28px;margin:0;color:#10b981;font-weight:bold">Mạnh SHopping</h1>
-            <p style="margin:5px 0;font-size:14px;color:#666">📍 Địa chỉ: Thổ tang , Phú Thok</p>
-            <p style="margin:5px 0;font-size:14px;color:#666">📞 Số điện thoại: 0385586685</p>
+        <div style="margin-bottom:20px;border-bottom:2px solid #10b981;padding-bottom:15px">
+            <h1 style="font-size:28px;margin:0;color:#10b981;font-weight:bold">Danh sách đơn hàng</h1>
+            <p style="margin:8px 0 0;font-size:14px;color:#333"><strong>Nhà phân phối:</strong> ${distributorName}</p>
+            <p style="margin:5px 0;font-size:14px;color:#666"><strong>Địa chỉ:</strong> ${distributorAddress}</p>
+            <p style="margin:5px 0;font-size:14px;color:#666"><strong>SDT:</strong> ${distributorPhone}</p>
         </div>
         <div style="margin-bottom:15px;display:flex;justify-content:space-between;font-size:13px">
             <div><strong>Ngày xuất:</strong> ${exportDate}</div>
             <div><strong>Tổng số đơn:</strong> ${orders.length} đơn</div>
         </div>
-        <h2 style="font-size:20px;margin-bottom:15px;color:#111">Danh Sách Đơn Hàng</h2>
         <table style="width:100%;border-collapse:collapse;font-size:11px">
             <thead>
                 <tr style="background:#10b981;color:#fff">
@@ -119,7 +123,7 @@ export const exportOrdersToPDF = async (orders: Order[]) => {
             </tbody>
         </table>
         <div style="margin-top:20px;text-align:right;padding:15px;background:#f0fdf4;border-radius:8px">
-            <p style="margin:0;font-size:18px;font-weight:bold;color:#10b981">TỔNG DOANH THU: ${totalAmount.toLocaleString()}đ</p>
+            <p style="margin:0;font-size:18px;font-weight:bold;color:#10b981">TỔNG DOANH THU: ${totalAmount.toLocaleString('vi-VN')}đ</p>
         </div>
     `;
 
@@ -128,8 +132,8 @@ export const exportOrdersToPDF = async (orders: Order[]) => {
     document.body.removeChild(container);
 
     const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const imgWidth = 190;
+    const pdf = new jsPDF('l', 'mm', 'a4');
+    const imgWidth = 277;
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
     pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight);

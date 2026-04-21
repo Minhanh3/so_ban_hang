@@ -1,10 +1,3 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder';
-
-if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
-    console.warn('VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are missing. Using placeholders.');
-}
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Supabase client removed — app now uses localStorage via storage.ts
+// Keep this file as a placeholder to avoid import errors from old references.
+export {};

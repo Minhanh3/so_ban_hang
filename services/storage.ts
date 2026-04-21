@@ -1,298 +1,406 @@
 
-import { MockData, Order, Product, Debt } from '../types';
-import { supabase } from './supabaseClient';
+import { Order, Product, Debt, ImportReceipt, ShopSettings, StockLog, StockChangeReason } from '../types';
 
-// Helper to format date
-const formatDate = (date: string) => new Date(date).toISOString();
+// ─── Storage Keys ───────────────────────────────────────────────────────────
+const KEYS = {
+  PRODUCTS:   'sbh_products',
+  ORDERS:     'sbh_orders',
+  DEBTS:      'sbh_debts',
+  IMPORTS:    'sbh_imports',
+  STOCK_LOGS: 'sbh_stock_logs',
+  SHOP_SETTINGS: 'sbh_shop_settings',
+} as const;
 
+const DEFAULT_SETTINGS: ShopSettings = {
+  distributor: {
+    name: '',
+    phone: '',
+    address: '',
+  },
+};
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function load<T>(key: string): T[] {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function save<T>(key: string, data: T[]): void {
+  localStorage.setItem(key, JSON.stringify(data));
+}
+
+function loadObject<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? ({ ...fallback, ...JSON.parse(raw) } as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function genId(prefix: string): string {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
+// Push one or more stock log entries
+function pushStockLogs(entries: Omit<StockLog, 'id' | 'date'>[], dateISO?: string): void {
+  const logs = load<StockLog>(KEYS.STOCK_LOGS);
+  const now = dateISO || new Date().toISOString();
+  for (const entry of entries) {
+    logs.unshift({
+      ...entry,
+      id: genId('log'),
+      date: now,
+    });
+  }
+  save(KEYS.STOCK_LOGS, logs);
+}
+
+// ─── DB Object ────────────────────────────────────────────────────────────────
 export const db = {
   async connect(): Promise<void> {
-    // Supabase client is already initialized
     return Promise.resolve();
   },
 
-  // --- PRODUCTS ---
+  // ── PRODUCTS ──────────────────────────────────────────────────────────────
   async getProducts(): Promise<Product[]> {
-    const { data, error } = await supabase
-      .from('products')
-      .select(`*, variants:product_variants(*)`)
-      .order('name');
-
-    if (error) {
-      console.error('Error fetching products:', error);
-      return [];
-    }
-
-    return data.map((p: any) => ({
-      id: p.id,
-      name: p.name,
-      unit: p.unit,
-      basePrice: Number(p.base_price),
-      costPrice: Number(p.cost_price),
-      totalStock: p.total_stock,
-      variants: p.variants.map((v: any) => ({
-        id: v.id,
-        name: v.name,
-        price: Number(v.price),
-        stock: v.stock
-      })),
-      inStock: p.total_stock > 0,
-      trackStock: true,
-      applyMaterials: false,
-      allowWholesaleView: false,
-      showOnWebsite: true,
-      images: p.image_url ? [p.image_url] : []
-    }));
+    return load<Product>(KEYS.PRODUCTS);
   },
 
   async addProduct(product: Product): Promise<void> {
-    const { data: prodData, error: prodError } = await supabase
-      .from('products')
-      .insert({
-        name: product.name,
-        base_price: product.basePrice,
-        cost_price: product.costPrice,
-        total_stock: product.totalStock,
-        unit: product.unit,
-        image_url: product.images?.[0]
-      })
-      .select()
-      .single();
+    const list = load<Product>(KEYS.PRODUCTS);
+    const newProduct: Product = {
+      ...product,
+      id: product.id || genId('prod'),
+    };
+    list.push(newProduct);
+    save(KEYS.PRODUCTS, list);
 
-    if (prodError || !prodData) {
-      console.error('Error adding product:', prodError);
-      return;
-    }
-
-    if (product.variants.length > 0) {
-      const variantsPayload = product.variants.map(v => ({
-        product_id: prodData.id,
-        name: v.name,
-        price: v.price,
-        stock: v.stock
-      }));
-
-      const { error: varError } = await supabase
-        .from('product_variants')
-        .insert(variantsPayload);
-
-      if (varError) console.error('Error adding variants:', varError);
+    // Log initial stock if > 0
+    if (newProduct.totalStock > 0) {
+      if (newProduct.variants.length === 0) {
+        pushStockLogs([{
+          productId: newProduct.id,
+          productName: newProduct.name,
+          oldStock: 0,
+          newStock: newProduct.totalStock,
+          change: newProduct.totalStock,
+          reason: 'manual_edit',
+          note: 'Tạo sản phẩm mới',
+        }]);
+      } else {
+        pushStockLogs(newProduct.variants.filter(v => v.stock > 0).map(v => ({
+          productId: newProduct.id,
+          productName: newProduct.name,
+          variantId: v.id,
+          variantName: v.name,
+          oldStock: 0,
+          newStock: v.stock,
+          change: v.stock,
+          reason: 'manual_edit' as StockChangeReason,
+          note: 'Tạo sản phẩm mới',
+        })));
+      }
     }
   },
 
-  // NOTE: Simplify update/delete for MVP
   async updateProduct(product: Product): Promise<void> {
-    await supabase
-      .from('products')
-      .update({
-        name: product.name,
-        base_price: product.basePrice,
-        cost_price: product.costPrice,
-        total_stock: product.totalStock,
-        unit: product.unit,
-        image_url: product.images?.[0]
-      })
-      .eq('id', product.id);
+    const list = load<Product>(KEYS.PRODUCTS);
+    const idx = list.findIndex((p) => p.id === product.id);
+    if (idx === -1) return;
 
-    // Update variants if needed (simplified: just update stocks/prices if specific logic required later)
-    // For now, we assume variants are managed separately or this is a simple product
+    const old = list[idx];
+    list[idx] = product;
+    save(KEYS.PRODUCTS, list);
+
+    // ── Auto-log stock changes ─────────────────────────────────────────────
+    const logEntries: Omit<StockLog, 'id' | 'date'>[] = [];
+
+    if (product.variants.length === 0) {
+      // Simple product — compare totalStock
+      if (old.totalStock !== product.totalStock) {
+        logEntries.push({
+          productId: product.id,
+          productName: product.name,
+          oldStock: old.totalStock,
+          newStock: product.totalStock,
+          change: product.totalStock - old.totalStock,
+          reason: 'manual_edit',
+          note: 'Chỉnh sửa thủ công',
+        });
+      }
+    } else {
+      // Variant product — compare each variant's stock
+      for (const newV of product.variants) {
+        const oldV = old.variants.find((v) => v.id === newV.id);
+        const oldStock = oldV?.stock ?? 0;
+        if (oldStock !== newV.stock) {
+          logEntries.push({
+            productId: product.id,
+            productName: product.name,
+            variantId: newV.id,
+            variantName: newV.name,
+            oldStock,
+            newStock: newV.stock,
+            change: newV.stock - oldStock,
+            reason: 'manual_edit',
+            note: 'Chỉnh sửa thủ công',
+          });
+        }
+      }
+    }
+
+    if (logEntries.length > 0) {
+      pushStockLogs(logEntries);
+    }
   },
 
   async deleteProduct(id: string): Promise<void> {
-    await supabase.from('products').delete().eq('id', id);
+    const list = load<Product>(KEYS.PRODUCTS).filter((p) => p.id !== id);
+    save(KEYS.PRODUCTS, list);
   },
-
 
   async clearAllProducts(): Promise<void> {
-    const { data: products } = await supabase.from('products').select('id');
-    if (!products || products.length === 0) return;
-
-    const ids = products.map((p: any) => p.id);
-
-    // Manual cascading delete attempt (safe)
-    await supabase.from('product_variants').delete().in('product_id', ids);
-
-    const { error } = await supabase.from('products').delete().in('id', ids);
-
-    if (error) {
-      console.error('Error clearing products:', error);
-      alert('Lỗi xóa sản phẩm: ' + error.message);
-    }
+    save(KEYS.PRODUCTS, []);
   },
 
-  // --- ORDERS ---
+  // ── ORDERS ────────────────────────────────────────────────────────────────
   async getOrders(): Promise<Order[]> {
-    const { data, error } = await supabase
-      .from('orders')
-      .select(`*, items:order_items(*)`)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Error fetching orders:', error);
-      return [];
-    }
-
-    return data.map((o: any) => ({
-      id: o.id,
-      status: o.status as any,
-      date: o.created_at,
-      totalAmount: Number(o.total_amount),
-      items: o.items.map((i: any) => ({
-        productId: i.product_id,
-        variantId: i.variant_id,
-        name: i.product_name,
-        variantName: i.variant_name,
-        quantity: i.quantity,
-        price: Number(i.price)
-      }))
-    }));
+    return load<Order>(KEYS.ORDERS);
   },
 
   async createOrder(order: Order): Promise<{ success: boolean; message?: string }> {
-    // 1. Client-side stock check (Basic)
     const products = await this.getProducts();
 
+    // Stock validation
     for (const item of order.items) {
-      const product = products.find(p => p.id === item.productId);
+      const product = products.find((p) => p.id === item.productId);
       if (product) {
         if (product.variants.length === 0) {
           if (product.totalStock < item.quantity) {
-            return { success: false, message: `Sản phẩm ${item.name} hết hàng.` };
+            return { success: false, message: `Sản phẩm "${item.name}" không đủ tồn kho.` };
           }
         } else {
-          const variant = product.variants.find(v => v.id === item.variantId);
+          const variant = product.variants.find((v) => v.id === item.variantId);
           if (!variant || variant.stock < item.quantity) {
-            return { success: false, message: `Sản phẩm ${item.name} (${item.variantName}) không đủ tồn kho.` };
+            return {
+              success: false,
+              message: `Sản phẩm "${item.name}" (${item.variantName}) không đủ tồn kho.`,
+            };
           }
         }
       }
     }
 
-    // 2. Insert Order
-    const { data: orderData, error: orderError } = await supabase
-      .from('orders')
-      .insert({
-        status: 'completed',
-        total_amount: order.totalAmount,
-        customer_name: 'Guest'
-      })
-      .select()
-      .single();
+    // Save order
+    const newOrder: Order = {
+      ...order,
+      id: order.id || genId('ord'),
+      date: order.date || new Date().toISOString(),
+      status: 'completed',
+    };
+    const orders = load<Order>(KEYS.ORDERS);
+    orders.unshift(newOrder);
+    save(KEYS.ORDERS, orders);
 
-    if (orderError || !orderData) {
-      return { success: false, message: 'Lỗi tạo đơn: ' + orderError?.message };
-    }
+    // Deduct stock + log
+    const logEntries: Omit<StockLog, 'id' | 'date'>[] = [];
+    const updatedProducts = products.map((p) => {
+      const affectedItems = order.items.filter((i) => i.productId === p.id);
+      if (affectedItems.length === 0) return p;
 
-    // 3. Insert Items
-    const orderItems = order.items.map(item => ({
-      order_id: orderData.id,
-      product_id: item.productId,
-      variant_id: (item.variantId === 'default' || !item.variantId) ? null : item.variantId,
-      product_name: item.name,
-      variant_name: item.variantName,
-      quantity: item.quantity,
-      price: item.price
-    }));
-
-    const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
-    if (itemsError) console.error('Error items:', itemsError);
-
-    // 4. Deduct Stock (Optimistic)
-    for (const item of order.items) {
-      if (item.variantId) {
-        const product = products.find(p => p.id === item.productId);
-        if (product) {
-          if (product.variants.length > 0) {
-            const v = product.variants.find(v => v.id === item.variantId);
-            if (v) {
-              await supabase.from('product_variants')
-                .update({ stock: v.stock - item.quantity })
-                .eq('id', v.id);
-            }
-          } else {
-            await supabase.from('products')
-              .update({ total_stock: product.totalStock - item.quantity })
-              .eq('id', product.id);
-          }
-        }
+      if (p.variants.length === 0) {
+        const totalQty = affectedItems.reduce((sum, i) => sum + i.quantity, 0);
+        const newStock = Math.max(0, p.totalStock - totalQty);
+        logEntries.push({
+          productId: p.id,
+          productName: p.name,
+          oldStock: p.totalStock,
+          newStock,
+          change: newStock - p.totalStock,
+          reason: 'order',
+          note: `Đơn hàng #${newOrder.id.slice(-6)}`,
+        });
+        return { ...p, totalStock: newStock };
+      } else {
+        const updatedVariants = p.variants.map((v) => {
+          const matchedItem = affectedItems.find((i) => i.variantId === v.id);
+          if (!matchedItem) return v;
+          const newStock = Math.max(0, v.stock - matchedItem.quantity);
+          logEntries.push({
+            productId: p.id,
+            productName: p.name,
+            variantId: v.id,
+            variantName: v.name,
+            oldStock: v.stock,
+            newStock,
+            change: newStock - v.stock,
+            reason: 'order' as StockChangeReason,
+            note: `Đơn hàng #${newOrder.id.slice(-6)}`,
+          });
+          return { ...v, stock: newStock };
+        });
+        const newTotalStock = updatedVariants.reduce((sum, v) => sum + v.stock, 0);
+        return { ...p, variants: updatedVariants, totalStock: newTotalStock };
       }
-    }
+    });
+    save(KEYS.PRODUCTS, updatedProducts);
+    if (logEntries.length > 0) pushStockLogs(logEntries, newOrder.date);
 
     return { success: true };
   },
 
-
   async clearAllOrders(): Promise<void> {
-    const { data: orders } = await supabase.from('orders').select('id');
-    if (!orders || orders.length === 0) return;
-
-    const ids = orders.map((o: any) => o.id);
-
-    // Manual cascading delete attempt
-    await supabase.from('order_items').delete().in('order_id', ids);
-
-    const { error } = await supabase.from('orders').delete().in('id', ids);
-
-    if (error) {
-      console.error('Error clearing orders:', error);
-      alert('Lỗi xóa đơn hàng: ' + error.message);
-    }
+    save(KEYS.ORDERS, []);
   },
 
-  // --- DEBTS ---
+  async getShopSettings(): Promise<ShopSettings> {
+    const settings = loadObject<ShopSettings>(KEYS.SHOP_SETTINGS, DEFAULT_SETTINGS);
+    return {
+      distributor: {
+        name: settings?.distributor?.name || '',
+        phone: settings?.distributor?.phone || '',
+        address: settings?.distributor?.address || '',
+      },
+    };
+  },
+
+  async saveShopSettings(settings: ShopSettings): Promise<void> {
+    const normalized: ShopSettings = {
+      distributor: {
+        name: settings?.distributor?.name?.trim() || '',
+        phone: settings?.distributor?.phone?.trim() || '',
+        address: settings?.distributor?.address?.trim() || '',
+      },
+    };
+    localStorage.setItem(KEYS.SHOP_SETTINGS, JSON.stringify(normalized));
+  },
+
+  // ── DEBTS ─────────────────────────────────────────────────────────────────
   async getDebts(): Promise<Debt[]> {
-    const { data, error } = await supabase
-      .from('debts')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) return [];
-
-    return data.map((d: any) => ({
-      id: d.id,
-      type: d.type as any,
-      contactName: d.contact_name,
-      remindStatus: 'due',
-      amount: Number(d.amount),
-      date: d.created_at,
-      note: d.note
-    }));
+    return load<Debt>(KEYS.DEBTS);
   },
 
   async addDebt(debt: Debt): Promise<void> {
-    await supabase.from('debts').insert({
-      contact_name: debt.contactName,
-      amount: debt.amount,
-      type: debt.type,
-      note: debt.note
-    });
+    const list = load<Debt>(KEYS.DEBTS);
+    const newDebt: Debt = {
+      ...debt,
+      id: debt.id || genId('debt'),
+      date: debt.date || new Date().toISOString(),
+    };
+    list.unshift(newDebt);
+    save(KEYS.DEBTS, list);
   },
-
 
   async clearAllDebts(): Promise<void> {
-    console.log('clearAllDebts called');
-    const { data: debts } = await supabase.from('debts').select('id');
-    console.log('Debts to delete:', debts?.length);
-    if (!debts || debts.length === 0) return;
-
-    const ids = debts.map((d: any) => d.id);
-    const { error } = await supabase.from('debts').delete().in('id', ids);
-
-    if (error) {
-      console.error('Error clearing debts:', error);
-      alert('Lỗi xóa sổ nợ: ' + error.message);
-    } else {
-      console.log('Debts cleared successfully');
-    }
+    save(KEYS.DEBTS, []);
   },
 
-  // --- COMPOSITE ---
-  async queryAll(): Promise<{ products: Product[], orders: Order[], debts: Debt[] }> {
+  // ── IMPORTS (Nhập hàng) ───────────────────────────────────────────────────
+  async getImports(): Promise<ImportReceipt[]> {
+    return load<ImportReceipt>(KEYS.IMPORTS);
+  },
+
+  async addImport(receipt: ImportReceipt): Promise<{ success: boolean; message?: string }> {
+    // Save receipt
+    const receipts = load<ImportReceipt>(KEYS.IMPORTS);
+    const newReceipt: ImportReceipt = {
+      ...receipt,
+      id: receipt.id || genId('imp'),
+      date: receipt.date || new Date().toISOString(),
+    };
+    receipts.unshift(newReceipt);
+    save(KEYS.IMPORTS, receipts);
+
+    // Update product stock + log
+    const products = load<Product>(KEYS.PRODUCTS);
+    const logEntries: Omit<StockLog, 'id' | 'date'>[] = [];
+
+    const updatedProducts = products.map((p) => {
+      const matchedItems = receipt.items.filter((i) => i.productId === p.id);
+      if (matchedItems.length === 0) return p;
+
+      if (p.variants.length === 0) {
+        const addQty = matchedItems.reduce((sum, i) => sum + i.quantity, 0);
+        const newStock = p.totalStock + addQty;
+        logEntries.push({
+          productId: p.id,
+          productName: p.name,
+          oldStock: p.totalStock,
+          newStock,
+          change: addQty,
+          reason: 'import',
+          note: `Nhập từ: ${receipt.supplierName || 'Không rõ'}`,
+        });
+        return {
+          ...p,
+          totalStock: newStock,
+          inStock: true,
+          costPrice: matchedItems[matchedItems.length - 1].costPrice // Update base costPrice
+        };
+      } else {
+        const updatedVariants = p.variants.map((v) => {
+          const item = matchedItems.find((i) => i.variantId === v.id);
+          if (!item) return v;
+          const newStock = v.stock + item.quantity;
+          logEntries.push({
+            productId: p.id,
+            productName: p.name,
+            variantId: v.id,
+            variantName: v.name,
+            oldStock: v.stock,
+            newStock,
+            change: item.quantity,
+            reason: 'import' as StockChangeReason,
+            note: `Nhập từ: ${receipt.supplierName || 'Không rõ'}`,
+          });
+          return { ...v, stock: newStock };
+        });
+        
+        // Cập nhật giá vốn của sản phẩm bằng giá nhập gần nhất
+        const latestCostPrice = matchedItems[matchedItems.length - 1].costPrice;
+
+        const newTotal = updatedVariants.reduce((sum, v) => sum + v.stock, 0);
+        return { 
+          ...p, 
+          variants: updatedVariants, 
+          totalStock: newTotal, 
+          inStock: newTotal > 0,
+          costPrice: latestCostPrice
+        };
+      }
+    });
+    save(KEYS.PRODUCTS, updatedProducts);
+    if (logEntries.length > 0) pushStockLogs(logEntries, newReceipt.date);
+
+    return { success: true };
+  },
+
+  async clearAllImports(): Promise<void> {
+    save(KEYS.IMPORTS, []);
+  },
+
+  // ── STOCK LOGS ────────────────────────────────────────────────────────────
+  async getStockLogs(productId?: string): Promise<StockLog[]> {
+    const logs = load<StockLog>(KEYS.STOCK_LOGS);
+    return productId ? logs.filter((l) => l.productId === productId) : logs;
+  },
+
+  async clearAllStockLogs(): Promise<void> {
+    save(KEYS.STOCK_LOGS, []);
+  },
+
+  // ── COMPOSITE ─────────────────────────────────────────────────────────────
+  async queryAll(): Promise<{ products: Product[]; orders: Order[]; debts: Debt[] }> {
     const [products, orders, debts] = await Promise.all([
       this.getProducts(),
       this.getOrders(),
-      this.getDebts()
+      this.getDebts(),
     ]);
     return { products, orders, debts };
-  }
+  },
 };

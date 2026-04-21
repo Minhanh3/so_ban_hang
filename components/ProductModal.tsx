@@ -54,10 +54,11 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, in
   const [sku, setSku] = useState('');
   const [barcode, setBarcode] = useState('');
   
-  // Pricing
+  // Pricing & Stock
   const [basePrice, setBasePrice] = useState(0);
   const [costPrice, setCostPrice] = useState(0);
   const [promoPrice, setPromoPrice] = useState(0);
+  const [totalStock, setTotalStock] = useState(0);
 
   // Variants
   const [variants, setVariants] = useState<ProductVariant[]>([]);
@@ -79,6 +80,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, in
       setBasePrice(initialProduct.basePrice);
       setCostPrice(initialProduct.costPrice || 0);
       setPromoPrice(initialProduct.promoPrice || 0);
+      setTotalStock(initialProduct.totalStock || 0);
       setVariants(initialProduct.variants);
       setInStock(initialProduct.inStock);
       setTrackStock(initialProduct.trackStock);
@@ -94,6 +96,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, in
       setBasePrice(0);
       setCostPrice(0);
       setPromoPrice(0);
+      setTotalStock(0);
       setVariants([]);
       setInStock(true);
       setTrackStock(true);
@@ -117,7 +120,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, in
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const totalStock = variants.length > 0 ? variants.reduce((sum, v) => sum + Number(v.stock), 0) : 100; // Default stock if no variants? 
+    const finalTotalStock = variants.length > 0 ? variants.reduce((sum, v) => sum + Number(v.stock), 0) : totalStock;
     onSave({
       id: initialProduct?.id || 'prod-' + Date.now(),
       name,
@@ -128,7 +131,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, in
       basePrice,
       costPrice,
       promoPrice,
-      totalStock,
+      totalStock: finalTotalStock,
       variants,
       inStock,
       trackStock,
@@ -202,21 +205,33 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, in
               </div>
             </section>
 
-            {/* Giá sản phẩm */}
+            {/* Giá sản phẩm & Tồn kho */}
             <section>
-              <SectionTitle>Giá sản phẩm</SectionTitle>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <SectionTitle>Giá sản phẩm & Tồn kho</SectionTitle>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
                   <Label>Giá bán</Label>
                   <Input type="number" value={basePrice || ''} onChange={e => setBasePrice(Number(e.target.value))} placeholder="0" />
                 </div>
                 <div>
-                  <Label>Giá vốn</Label>
+                  <Label>Giá vốn (Giá nhập)</Label>
                   <Input type="number" value={costPrice || ''} onChange={e => setCostPrice(Number(e.target.value))} placeholder="0" />
                 </div>
                 <div>
                   <Label>Giá khuyến mãi</Label>
                   <Input type="number" value={promoPrice || ''} onChange={e => setPromoPrice(Number(e.target.value))} placeholder="0" />
+                </div>
+                <div>
+                  <Label>Tồn kho</Label>
+                  <Input 
+                    type="number" 
+                    value={variants.length > 0 ? variants.reduce((sum, v) => sum + Number(v.stock), 0) : (totalStock || '')} 
+                    onChange={e => setTotalStock(Number(e.target.value))} 
+                    placeholder="0" 
+                    disabled={variants.length > 0}
+                    className={variants.length > 0 ? 'opacity-50 cursor-not-allowed' : ''}
+                  />
+                  {variants.length > 0 && <p className="text-[10px] text-gray-500 mt-1">Tự động tính từ phân loại</p>}
                 </div>
               </div>
               <button type="button" className="mt-4 text-[#3b82f6] text-xs font-bold flex items-center gap-1.5 hover:underline">

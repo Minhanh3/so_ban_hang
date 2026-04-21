@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { Menu, X, Bell, User, LayoutDashboard, ShoppingBag, Box, Users, CreditCard, PieChart, ChevronRight, Store, Palette } from 'lucide-react';
+import { Menu, X, Bell, User, LayoutDashboard, ShoppingBag, Box, Users, CreditCard, PieChart, ChevronRight, Store, Palette, Truck, Settings } from 'lucide-react';
 import { Link, useLocation } from "react-router-dom";
 import { useTheme } from '../src/context/ThemeContext';
 
@@ -29,9 +28,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { label: 'Việc cần làm', path: '/', icon: <LayoutDashboard size={20} /> },
     { label: 'Đơn hàng', path: '/orders', icon: <ShoppingBag size={20} /> },
     { label: 'Sản phẩm', path: '/products', icon: <Box size={20} /> },
+    { label: 'Nhập hàng', path: '/import', icon: <Truck size={20} /> },
     { label: 'Sổ nợ', path: '/debts', icon: <Users size={20} /> },
     { label: 'Bán hàng (POS)', path: '/pos', icon: <CreditCard size={20} /> },
     { label: 'Tài chính', path: '/finance', icon: <PieChart size={20} /> },
+    { label: 'Cài đặt', path: '/settings', icon: <Settings size={20} /> },
   ];
 
   const currentLabel = menuItems.find(m => m.path === location.pathname)?.label || 'Bảng điều khiển';
