@@ -2,19 +2,21 @@
 <img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
 </div>
 
-# Run and deploy your AI Studio app
+# So Ban Hang
 
-This contains everything you need to run your app locally.
+## Run locally
 
-View your app in AI Studio: https://ai.studio/apps/drive/1D2T56gMUBdSh99D8SVMMTb2RIFgqz6eL
+Prerequisites: Node.js
 
-## Run Locally
+1. Install dependencies with `npm install`.
+2. Create `.env.local` from `.env.example`.
+3. Fill `GEMINI_API_KEY` if you use the AI assistant.
+4. Fill the `VITE_FIREBASE_*` variables to enable Cloud Firestore.
+5. Start the app with `npm run dev`.
 
-**Prerequisites:**  Node.js
+## Firebase notes
 
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+- The app now reads and writes business data through Cloud Firestore when Firebase config is present.
+- Data is scoped under `users/{userId}/app_data/{datasetKey}` using the existing local auth user id.
+- If Firebase env vars are missing, the app falls back to `localStorage` so local development still works.
+- Existing local data is used as the initial seed for Firestore the first time a dataset is loaded and no remote document exists yet.
