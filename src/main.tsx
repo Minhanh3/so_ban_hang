@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from '../App';
+import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 
 class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean, error: Error | null}> {
@@ -34,9 +35,11 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
     <React.StrictMode>
         <ErrorBoundary>
-            <ThemeProvider>
-                <App />
-            </ThemeProvider>
+            <AuthProvider>
+                <ThemeProvider>
+                    <App />
+                </ThemeProvider>
+            </AuthProvider>
         </ErrorBoundary>
     </React.StrictMode>
 );

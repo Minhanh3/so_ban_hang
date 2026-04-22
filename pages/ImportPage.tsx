@@ -1,4 +1,4 @@
-
+﻿
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Plus, Trash2, Package, ClipboardList, Search,
@@ -7,7 +7,7 @@ import {
 import { db } from '../services/storage';
 import { Product, ImportItem, ImportReceipt } from '../types';
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function formatVND(n: number) {
   return n.toLocaleString('vi-VN') + 'đ';
 }
@@ -23,11 +23,11 @@ function genId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+// â”€â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const Badge = ({ children, color = 'slate' }: { children: React.ReactNode; color?: string }) => {
   const colors: Record<string, string> = {
     green: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    slate: 'bg-slate-100 text-slate-600 border-slate-200',
+    slate: 'bg-slate-100 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700',
     blue: 'bg-blue-50 text-blue-700 border-blue-200',
   };
   return (
@@ -37,7 +37,7 @@ const Badge = ({ children, color = 'slate' }: { children: React.ReactNode; color
   );
 };
 
-// ─── Product Picker Row ────────────────────────────────────────────────────────
+// â”€â”€â”€ Product Picker Row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 interface PickerRowProps {
   products: Product[];
   item: ImportItem;
@@ -70,49 +70,49 @@ const ProductPickerRow: React.FC<PickerRowProps> = ({ products, item, onUpdate, 
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-3 shadow-sm">
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 space-y-3 shadow-sm">
       {/* Product selector */}
       <div className="relative">
         <button
           type="button"
           onClick={() => setOpen(v => !v)}
-          className="w-full flex items-center justify-between px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:border-primary transition-colors"
+          className="w-full flex items-center justify-between px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-300 hover:border-primary transition-colors"
         >
           <div className="flex items-center gap-2 min-w-0">
-            <Package size={16} className="text-slate-400 shrink-0" />
-            <span className="truncate">{selectedProduct ? selectedProduct.name : 'Chọn sản phẩm…'}</span>
+            <Package size={16} className="text-slate-400 dark:text-slate-300 shrink-0" />
+            <span className="truncate">{selectedProduct ? selectedProduct.name : 'Chọn sản phẩmâ€¦'}</span>
           </div>
-          <ChevronDown size={16} className={`text-slate-400 transition-transform shrink-0 ${open ? 'rotate-180' : ''}`} />
+          <ChevronDown size={16} className={`text-slate-400 dark:text-slate-300 transition-transform shrink-0 ${open ? 'rotate-180' : ''}`} />
         </button>
 
         {open && (
-          <div className="absolute top-full left-0 right-0 z-30 mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl overflow-hidden">
-            <div className="p-2 border-b border-slate-100">
+          <div className="absolute top-full left-0 right-0 z-30 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl overflow-hidden">
+            <div className="p-2 border-b border-slate-100 dark:border-slate-800">
               <div className="relative">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-300" />
                 <input
                   autoFocus
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  placeholder="Tìm sản phẩm…"
-                  className="w-full pl-8 pr-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-primary"
+                  placeholder="Tìm sản phẩmâ€¦"
+                  className="w-full pl-8 pr-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:border-primary"
                 />
               </div>
             </div>
             <ul className="max-h-48 overflow-y-auto">
               {filtered.length === 0 && (
-                <li className="px-4 py-3 text-sm text-slate-400 text-center">Không tìm thấy</li>
+                <li className="px-4 py-3 text-sm text-slate-400 dark:text-slate-300 text-center">Không tìm thấy</li>
               )}
               {filtered.map(p => (
                 <li key={p.id}>
                   <button
                     type="button"
                     onClick={() => selectProduct(p)}
-                    className="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center justify-between group"
+                    className="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-800 flex items-center justify-between group"
                   >
                     <div>
-                      <p className="text-sm font-bold text-slate-800 group-hover:text-primary">{p.name}</p>
-                      <p className="text-[10px] text-slate-400 font-bold">Tồn: {p.totalStock} {p.unit || 'món'}</p>
+                      <p className="text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-primary">{p.name}</p>
+                      <p className="text-[10px] text-slate-400 dark:text-slate-300 font-bold">Tồn: {p.totalStock} {p.unit || 'món'}</p>
                     </div>
                     {p.id === item.productId && <CheckCircle size={16} className="text-primary" />}
                   </button>
@@ -126,14 +126,14 @@ const ProductPickerRow: React.FC<PickerRowProps> = ({ products, item, onUpdate, 
       {/* Variant selector (if product has variants) */}
       {selectedProduct && selectedProduct.variants.length > 0 && (
         <div>
-          <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Phân loại</label>
+          <label className="text-[10px] font-black text-slate-400 dark:text-slate-300 uppercase tracking-wider">Phân loại</label>
           <select
             value={item.variantId || ''}
             onChange={e => {
               const v = selectedProduct.variants.find(vv => vv.id === e.target.value);
               onUpdate({ ...item, variantId: v?.id, variantName: v?.name });
             }}
-            className="mt-1 w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-primary"
+            className="mt-1 w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-300 outline-none focus:border-primary"
           >
             {selectedProduct.variants.map(v => (
               <option key={v.id} value={v.id}>{v.name} (tồn: {v.stock})</option>
@@ -145,33 +145,33 @@ const ProductPickerRow: React.FC<PickerRowProps> = ({ products, item, onUpdate, 
       {/* Quantity + Cost price row */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Số lượng nhập</label>
+          <label className="text-[10px] font-black text-slate-400 dark:text-slate-300 uppercase tracking-wider">Số lượng nhập</label>
           <input
             type="number"
             min={1}
             value={item.quantity || ''}
             onChange={e => onUpdate({ ...item, quantity: Math.max(1, Number(e.target.value)) })}
             placeholder="0"
-            className="mt-1 w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 outline-none focus:border-primary text-center"
+            className="mt-1 w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-800 dark:text-slate-200 outline-none focus:border-primary text-center"
           />
         </div>
         <div>
-          <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Giá nhập (đ)</label>
+          <label className="text-[10px] font-black text-slate-400 dark:text-slate-300 uppercase tracking-wider">Giá nhập (đ)</label>
           <input
             type="number"
             min={0}
             value={item.costPrice || ''}
             onChange={e => onUpdate({ ...item, costPrice: Number(e.target.value) })}
             placeholder="0"
-            className="mt-1 w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 outline-none focus:border-primary text-right"
+            className="mt-1 w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-800 dark:text-slate-200 outline-none focus:border-primary text-right"
           />
         </div>
       </div>
 
       {/* Row footer: subtotal + remove */}
-      <div className="flex items-center justify-between pt-1 border-t border-slate-100">
-        <span className="text-xs text-slate-400 font-bold">
-          Thành tiền: <span className="text-slate-700">{formatVND(item.quantity * item.costPrice)}</span>
+      <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-800">
+        <span className="text-xs text-slate-400 dark:text-slate-300 font-bold">
+          Thành tiền: <span className="text-slate-700 dark:text-slate-300">{formatVND(item.quantity * item.costPrice)}</span>
         </span>
         <button
           type="button"
@@ -185,7 +185,7 @@ const ProductPickerRow: React.FC<PickerRowProps> = ({ products, item, onUpdate, 
   );
 };
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Main Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 type Tab = 'create' | 'history';
 
 const ImportPage: React.FC = () => {
@@ -197,7 +197,7 @@ const ImportPage: React.FC = () => {
   const [supplierName, setSupplierName] = useState('');
   const [note, setNote] = useState('');
   const [items, setItems] = useState<ImportItem[]>([]);
-  // Import date & time — defaults to now
+  // Import date & time â€” defaults to now
   const [importDate, setImportDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [importTime, setImportTime] = useState(() => new Date().toTimeString().slice(0, 5));
 
@@ -274,14 +274,14 @@ const ImportPage: React.FC = () => {
     }
   };
 
-  // ── Render ──────────────────────────────────────────────────────────────────
+  // â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Nhập hàng</h1>
-          <p className="text-slate-500 text-sm font-medium mt-1">Tạo phiếu nhập kho và cập nhật tồn hàng tự động.</p>
+          <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">Nhập hàng</h1>
+          <p className="text-slate-500 dark:text-slate-300 text-sm font-medium mt-1">Tạo phiếu nhập kho và cập nhật tồn hàng tự động.</p>
         </div>
       </div>
 
@@ -302,8 +302,8 @@ const ImportPage: React.FC = () => {
               onClick={() => setTab(key as Tab)}
               className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${
                 tab === key
-                  ? 'bg-white text-primary shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700'
+                  ? 'bg-white dark:bg-slate-900 text-primary shadow-sm'
+                  : 'text-slate-500 dark:text-slate-300 hover:text-slate-700 dark:hover:text-slate-200 dark:text-slate-300'
               }`}
             >
               {icon}{label}
@@ -312,13 +312,13 @@ const ImportPage: React.FC = () => {
         )}
       </div>
 
-      {/* ── TAB: Create ── */}
+      {/* â”€â”€ TAB: Create â”€â”€ */}
       {tab === 'create' && (
         <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left — product rows */}
+          {/* Left â€” product rows */}
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-black text-slate-700 uppercase tracking-wider">Danh sách sản phẩm nhập</h2>
+              <h2 className="text-sm font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider">Danh sách sản phẩm nhập</h2>
               <button
                 type="button"
                 onClick={addRow}
@@ -331,7 +331,7 @@ const ImportPage: React.FC = () => {
             </div>
 
             {items.length === 0 && (
-              <div className="bg-white border-2 border-dashed border-slate-200 rounded-2xl py-16 flex flex-col items-center text-slate-300 gap-3">
+              <div className="bg-white dark:bg-slate-900 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl py-16 flex flex-col items-center text-slate-300 dark:text-slate-300 gap-3">
                 <Package size={40} />
                 <p className="text-sm font-bold">Chưa có sản phẩm nào. Nhấn "Thêm sản phẩm".</p>
               </div>
@@ -348,74 +348,74 @@ const ImportPage: React.FC = () => {
             ))}
           </div>
 
-          {/* Right — receipt info + summary */}
+          {/* Right â€” receipt info + summary */}
           <div className="space-y-4">
             {/* Supplier & note card */}
-            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
-              <h3 className="text-sm font-black text-slate-700 uppercase tracking-wider flex items-center gap-2">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-5 shadow-sm space-y-4">
+              <h3 className="text-sm font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-2">
                 <Building2 size={16} className="text-primary" /> Thông tin phiếu
               </h3>
 
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Nhà cung cấp</label>
+                <label className="text-[10px] font-black text-slate-400 dark:text-slate-300 uppercase tracking-wider">Nhà cung cấp</label>
                 <input
                   type="text"
                   value={supplierName}
                   onChange={e => setSupplierName(e.target.value)}
                   placeholder="Tên nhà cung cấp (tuỳ chọn)"
-                  className="mt-1 w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 outline-none focus:border-primary"
+                  className="mt-1 w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-800 dark:text-slate-200 outline-none focus:border-primary"
                 />
               </div>
 
               {/* Date */}
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Ngày nhập</label>
+                <label className="text-[10px] font-black text-slate-400 dark:text-slate-300 uppercase tracking-wider">Ngày nhập</label>
                 <input
                   type="date"
                   value={importDate}
                   onChange={e => setImportDate(e.target.value)}
-                  className="mt-1 w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 outline-none focus:border-primary"
+                  className="mt-1 w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-800 dark:text-slate-200 outline-none focus:border-primary"
                 />
               </div>
 
               {/* Time */}
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Giờ nhập</label>
+                <label className="text-[10px] font-black text-slate-400 dark:text-slate-300 uppercase tracking-wider">Giờ nhập</label>
                 <input
                   type="time"
                   value={importTime}
                   onChange={e => setImportTime(e.target.value)}
-                  className="mt-1 w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 outline-none focus:border-primary"
+                  className="mt-1 w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-800 dark:text-slate-200 outline-none focus:border-primary"
                 />
               </div>
 
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Ghi chú</label>
+                <label className="text-[10px] font-black text-slate-400 dark:text-slate-300 uppercase tracking-wider">Ghi chú</label>
                 <textarea
                   value={note}
                   onChange={e => setNote(e.target.value)}
-                  placeholder="Ghi chú thêm…"
+                  placeholder="Ghi chú thêmâ€¦"
                   rows={2}
-                  className="mt-1 w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 outline-none focus:border-primary resize-none"
+                  className="mt-1 w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-800 dark:text-slate-200 outline-none focus:border-primary resize-none"
                 />
               </div>
             </div>
 
             {/* Summary card */}
-            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
-              <h3 className="text-sm font-black text-slate-700 uppercase tracking-wider flex items-center gap-2">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-5 shadow-sm space-y-3">
+              <h3 className="text-sm font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-2">
                 <ClipboardList size={16} className="text-primary" /> Tóm tắt
               </h3>
               <div className="flex justify-between text-sm">
-                <span className="text-slate-500 font-bold">Số mặt hàng</span>
-                <span className="font-black text-slate-800">{items.filter(i => i.productId).length}</span>
+                <span className="text-slate-500 dark:text-slate-300 font-bold">Số mặt hàng</span>
+                <span className="font-black text-slate-800 dark:text-slate-200">{items.filter(i => i.productId).length}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-slate-500 font-bold">Tổng số lượng</span>
-                <span className="font-black text-slate-800">{items.reduce((s, i) => s + i.quantity, 0)}</span>
+                <span className="text-slate-500 dark:text-slate-300 font-bold">Tổng số lượng</span>
+                <span className="font-black text-slate-800 dark:text-slate-200">{items.reduce((s, i) => s + i.quantity, 0)}</span>
               </div>
-              <div className="pt-3 border-t border-slate-100 flex justify-between">
-                <span className="text-slate-700 font-black">Tổng tiền nhập</span>
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-between">
+                <span className="text-slate-700 dark:text-slate-300 font-black">Tổng tiền nhập</span>
                 <span className="text-xl font-black text-primary">{formatVND(totalCost)}</span>
               </div>
             </div>
@@ -426,17 +426,17 @@ const ImportPage: React.FC = () => {
               disabled={saving || items.filter(i => i.productId).length === 0}
               className="w-full py-3.5 bg-primary text-white rounded-2xl font-black text-sm hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-primary/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              {saving ? 'Đang lưu…' : <><CheckCircle size={18} /> Xác nhận nhập hàng</>}
+              {saving ? 'Đang lưuâ€¦' : <><CheckCircle size={18} /> Xác nhận nhập hàng</>}
             </button>
           </div>
         </form>
       )}
 
-      {/* ── TAB: History ── */}
+      {/* â”€â”€ TAB: History â”€â”€ */}
       {tab === 'history' && (
         <div className="space-y-4">
           {receipts.length === 0 && (
-            <div className="bg-white border border-slate-100 rounded-2xl py-20 flex flex-col items-center text-slate-300 gap-3 shadow-sm">
+            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl py-20 flex flex-col items-center text-slate-300 dark:text-slate-300 gap-3 shadow-sm">
               <History size={40} />
               <p className="text-sm font-bold">Chưa có phiếu nhập nào.</p>
             </div>
@@ -445,28 +445,28 @@ const ImportPage: React.FC = () => {
           {receipts.map(r => {
             const { date, time } = formatDateTime(r.date);
             return (
-              <div key={r.id} className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
+              <div key={r.id} className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
                 {/* Receipt header */}
-                <div className="px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-50">
+                <div className="px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-50 dark:border-slate-800">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-primary-light rounded-xl flex items-center justify-center text-primary">
                       <Package size={20} />
                     </div>
                     <div>
-                      <p className="font-black text-slate-800">{r.supplierName}</p>
-                      {r.note && <p className="text-xs text-slate-400 font-bold italic">{r.note}</p>}
+                      <p className="font-black text-slate-800 dark:text-slate-200">{r.supplierName}</p>
+                      {r.note && <p className="text-xs text-slate-400 dark:text-slate-300 font-bold italic">{r.note}</p>}
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                     {/* Date badge */}
-                    <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
-                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Ngày</span>
-                      <span className="text-xs font-black text-slate-800">{date}</span>
+                    <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-xl">
+                      <span className="text-[10px] font-black text-slate-500 dark:text-slate-300 uppercase tracking-wider">Ngày</span>
+                      <span className="text-xs font-black text-slate-800 dark:text-slate-200">{date}</span>
                     </div>
                     {/* Time badge */}
-                    <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
-                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Giờ</span>
-                      <span className="text-xs font-black text-slate-800">{time}</span>
+                    <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-xl">
+                      <span className="text-[10px] font-black text-slate-500 dark:text-slate-300 uppercase tracking-wider">Giờ</span>
+                      <span className="text-xs font-black text-slate-800 dark:text-slate-200">{time}</span>
                     </div>
                     <span className="text-lg font-black text-primary">{formatVND(r.totalCost)}</span>
                   </div>
@@ -475,7 +475,7 @@ const ImportPage: React.FC = () => {
                 {/* Receipt items */}
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-slate-50/60 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <tr className="bg-slate-50 dark:bg-slate-800/60 text-[10px] font-black text-slate-400 dark:text-slate-300 uppercase tracking-widest">
                       <th className="px-6 py-3 text-left">Sản phẩm</th>
                       <th className="px-4 py-3 text-center">SL</th>
                       <th className="px-4 py-3 text-right">Giá nhập</th>
@@ -484,22 +484,22 @@ const ImportPage: React.FC = () => {
                   </thead>
                   <tbody className="divide-y divide-slate-50">
                     {r.items.map((it, idx) => (
-                      <tr key={idx} className="hover:bg-slate-50/40 transition-colors">
+                      <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-800/40 transition-colors">
                         <td className="px-6 py-3">
-                          <p className="font-bold text-slate-800">{it.productName}</p>
+                          <p className="font-bold text-slate-800 dark:text-slate-200">{it.productName}</p>
                           {it.variantName && (
                             <Badge color="slate">{it.variantName}</Badge>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-center font-black text-slate-700">{it.quantity}</td>
-                        <td className="px-4 py-3 text-right font-bold text-slate-600">{formatVND(it.costPrice)}</td>
-                        <td className="px-6 py-3 text-right font-black text-slate-800">{formatVND(it.quantity * it.costPrice)}</td>
+                        <td className="px-4 py-3 text-center font-black text-slate-700 dark:text-slate-300">{it.quantity}</td>
+                        <td className="px-4 py-3 text-right font-bold text-slate-600 dark:text-slate-300">{formatVND(it.costPrice)}</td>
+                        <td className="px-6 py-3 text-right font-black text-slate-800 dark:text-slate-200">{formatVND(it.quantity * it.costPrice)}</td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot>
-                    <tr className="bg-slate-50/60">
-                      <td colSpan={3} className="px-6 py-3 text-right text-xs font-black text-slate-500 uppercase tracking-wider">Tổng cộng</td>
+                    <tr className="bg-slate-50 dark:bg-slate-800/60">
+                      <td colSpan={3} className="px-6 py-3 text-right text-xs font-black text-slate-500 dark:text-slate-300 uppercase tracking-wider">Tổng cộng</td>
                       <td className="px-6 py-3 text-right font-black text-primary">{formatVND(r.totalCost)}</td>
                     </tr>
                   </tfoot>
@@ -514,3 +514,5 @@ const ImportPage: React.FC = () => {
 };
 
 export default ImportPage;
+
+

@@ -1,4 +1,4 @@
-
+﻿
 import React, { useState, useEffect } from 'react';
 import { Users, Search, Plus, ArrowLeft, Filter, Phone, Calendar, DollarSign, AlertTriangle, Trash2, FileText, FileSpreadsheet } from 'lucide-react';
 import { db } from '../services/storage';
@@ -63,12 +63,12 @@ const DebtsPage: React.FC = () => {
     <div className="max-w-6xl mx-auto space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Link to="/" className="p-2 hover:bg-gray-100 rounded-lg text-gray-500">
+          <Link to="/" className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg text-gray-500 dark:text-slate-300">
             <ArrowLeft size={20} />
           </Link>
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Sổ nợ</h2>
-            <p className="text-gray-500 text-sm">Quản lý nợ khách hàng và nợ nhà cung cấp.</p>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Sổ nợ</h2>
+            <p className="text-gray-500 dark:text-slate-300 text-sm">Quản lý nợ khách hàng và nợ nhà cung cấp.</p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -120,22 +120,22 @@ const DebtsPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex border-b border-gray-200">
-        <button onClick={() => setActiveTab('all')} className={`px-6 py-4 text-sm font-bold border-b-2 ${activeTab === 'all' ? 'border-primary text-primary' : 'border-transparent text-gray-400'}`}>Tất cả</button>
-        <button onClick={() => setActiveTab('customer_receivable')} className={`px-6 py-4 text-sm font-bold border-b-2 ${activeTab === 'customer_receivable' ? 'border-primary text-primary' : 'border-transparent text-gray-400'}`}>Khách nợ</button>
-        <button onClick={() => setActiveTab('supplier_payable')} className={`px-6 py-4 text-sm font-bold border-b-2 ${activeTab === 'supplier_payable' ? 'border-primary text-primary' : 'border-transparent text-gray-400'}`}>Nợ NCC</button>
+      <div className="flex border-b border-gray-200 dark:border-slate-700">
+        <button onClick={() => setActiveTab('all')} className={`px-6 py-4 text-sm font-bold border-b-2 ${activeTab === 'all' ? 'border-primary text-primary' : 'border-transparent text-gray-400 dark:text-slate-300 dark:text-slate-300'}`}>Tất cả</button>
+        <button onClick={() => setActiveTab('customer_receivable')} className={`px-6 py-4 text-sm font-bold border-b-2 ${activeTab === 'customer_receivable' ? 'border-primary text-primary' : 'border-transparent text-gray-400 dark:text-slate-300 dark:text-slate-300'}`}>Khách nợ</button>
+        <button onClick={() => setActiveTab('supplier_payable')} className={`px-6 py-4 text-sm font-bold border-b-2 ${activeTab === 'supplier_payable' ? 'border-primary text-primary' : 'border-transparent text-gray-400 dark:text-slate-300 dark:text-slate-300'}`}>Nợ NCC</button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden">
         {filteredDebts.map(debt => (
-          <div key={debt.id} className="p-4 hover:bg-gray-50 flex items-center justify-between border-b last:border-0 group">
+          <div key={debt.id} className="p-4 hover:bg-gray-50 dark:hover:bg-slate-800 flex items-center justify-between border-b last:border-0 group">
             <div className="flex items-center gap-4">
               <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${debt.type === 'customer_receivable' ? 'bg-primary-light text-primary' : 'bg-red-100 text-red-600'}`}>
                 {debt.contactName[0]}
               </div>
               <div>
-                <h4 className="font-bold text-gray-800">{debt.contactName}</h4>
-                <p className="text-xs text-gray-400 flex items-center gap-1"><Calendar size={12} /> {new Date(debt.date).toLocaleDateString('vi-VN')}</p>
+                <h4 className="font-bold text-gray-800 dark:text-slate-200">{debt.contactName}</h4>
+                <p className="text-xs text-gray-400 dark:text-slate-300 dark:text-slate-300 flex items-center gap-1"><Calendar size={12} /> {new Date(debt.date).toLocaleDateString('vi-VN')}</p>
                 {debt.note && <p className="text-[10px] text-primary mt-1 italic">#{debt.note}</p>}
               </div>
             </div>
@@ -146,7 +146,7 @@ const DebtsPage: React.FC = () => {
             </div>
           </div>
         ))}
-        {filteredDebts.length === 0 && <div className="p-12 text-center text-gray-400">Không có khoản nợ nào.</div>}
+        {filteredDebts.length === 0 && <div className="p-12 text-center text-gray-400 dark:text-slate-300 dark:text-slate-300">Không có khoản nợ nào.</div>}
       </div>
 
       <DebtModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSaveDebt} />
@@ -155,3 +155,5 @@ const DebtsPage: React.FC = () => {
 };
 
 export default DebtsPage;
+
+

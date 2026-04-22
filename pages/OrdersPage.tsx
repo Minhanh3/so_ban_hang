@@ -1,4 +1,4 @@
-
+﻿
 import React, { useState, useEffect, useCallback } from 'react';
 import { ShoppingBag, Search, Plus, Calendar, Eye, Trash2, ArrowLeft, Package, CheckCircle2, Clock, ShoppingCart, Minus, ChevronRight, AlertCircle, Printer, Download, Check, Zap, Table, Grid, Info, X, Tag, Truck, Gift, MoreVertical, CreditCard, Edit2, Image as ImageIcon, FileText, FileSpreadsheet } from 'lucide-react';
 import { db } from '../services/storage';
@@ -29,6 +29,34 @@ const OrdersPage: React.FC = () => {
   const [tempPrice, setTempPrice] = useState(0);
   const [discountValue, setDiscountValue] = useState(0);
   const [discountType, setDiscountType] = useState<'vnd' | '%'>('vnd');
+
+  const sanitizeFilePart = (value: string) =>
+    value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .replace(/_+/g, '_');
+
+  const buildOrderFilename = (
+    prefix: string | undefined,
+    base: string,
+    orderCode?: string,
+    dateISO?: string,
+    includeDate = true,
+  ) => {
+    const datePart = dateISO
+      ? new Date(dateISO).toISOString().slice(0, 10)
+      : new Date().toISOString().slice(0, 10);
+    const parts = [
+      sanitizeFilePart(prefix || ''),
+      sanitizeFilePart(base),
+      orderCode ? sanitizeFilePart(orderCode) : '',
+      includeDate ? datePart : '',
+    ].filter(Boolean);
+    return parts.join('_');
+  };
 
   const refreshData = async () => {
     const prods = await db.getProducts();
@@ -193,6 +221,7 @@ const OrdersPage: React.FC = () => {
     if (!printWindow) return;
 
     const settings = await db.getShopSettings();
+    const fileBase = buildOrderFilename(settings.orderFilePrefix, 'hoa_don', order.id.slice(-6), order.date);
     const distributorName = order.distributorName || settings.distributor.name || 'Chưa cấu hình';
     const distributorPhone = order.distributorPhone || settings.distributor.phone || 'Chưa cấu hình';
     const distributorAddress = order.distributorAddress || settings.distributor.address || 'Chưa cấu hình';
@@ -211,7 +240,7 @@ const OrdersPage: React.FC = () => {
     printWindow.document.write(`
       <html>
         <head>
-          <title>Hóa đơn #${order.id}</title>
+          <title>${fileBase}.pdf</title>
           <style>
             body { font-family: Arial, sans-serif; margin: 24px; color: #111; font-size: 14px; }
             .muted { color: #444; }
@@ -273,7 +302,9 @@ const OrdersPage: React.FC = () => {
   };
 
   const handleExportAll = () => {
-    import('../utils/csvExport').then(({ exportToCSV }) => {
+    import('../utils/csvExport').then(async ({ exportToCSV }) => {
+      const settings = await db.getShopSettings();
+      const filename = buildOrderFilename(settings.orderFilePrefix, 'danh_sach_don_hang', undefined, undefined, false);
       const dataToExport = orders.map(o => ({
         id: o.id,
         date: new Date(o.date).toLocaleString('vi-VN'),
@@ -284,13 +315,15 @@ const OrdersPage: React.FC = () => {
         distributor_phone: o.distributorPhone || '',
         distributor_address: o.distributorAddress || '',
       }));
-      exportToCSV(dataToExport, 'danh_sach_don_hang');
+      exportToCSV(dataToExport, filename);
     });
   };
 
   const handleExportAllPDF = () => {
-    import('../utils/pdfExport').then(({ exportOrdersToPDF }) => {
-      exportOrdersToPDF(orders);
+    import('../utils/pdfExport').then(async ({ exportOrdersToPDF }) => {
+      const settings = await db.getShopSettings();
+      const filename = `${buildOrderFilename(settings.orderFilePrefix, 'danh_sach_don_hang')}.pdf`;
+      exportOrdersToPDF(orders, filename);
     });
   };
 
@@ -301,12 +334,12 @@ const OrdersPage: React.FC = () => {
         <>
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <Link to="/" className="p-2 hover:bg-gray-100 rounded-lg text-gray-500">
+              <Link to="/" className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg text-gray-500 dark:text-slate-300">
                 <ArrowLeft size={20} />
               </Link>
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">Quản lý Đơn hàng</h2>
-                <p className="text-gray-500 text-sm">Theo dõi doanh số và lịch sử bán hàng.</p>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Quản lý Đơn hàng</h2>
+                <p className="text-gray-500 dark:text-slate-300 text-sm">Theo dõi doanh số và lịch sử bán hàng.</p>
               </div>
             </div>
             <div className="flex gap-2">
@@ -341,22 +374,22 @@ const OrdersPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="p-4 border-b bg-slate-50/50">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden">
+            <div className="p-4 border-b bg-slate-50 dark:bg-slate-800/50">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-300 dark:text-slate-300" size={18} />
                 <input
                   type="text"
                   placeholder="Tìm mã đơn hoặc tên sản phẩm..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary outline-none"
+                  className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary outline-none"
                 />
               </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left">
-                <thead className="bg-gray-50 border-b border-gray-100 text-xs font-bold text-gray-400 uppercase">
+                <thead className="bg-gray-50 border-b border-gray-100 dark:border-slate-800 text-xs font-bold text-gray-400 dark:text-slate-300 dark:text-slate-300 uppercase">
                   <tr>
                     <th className="px-6 py-4">Đơn hàng</th>
                     <th className="px-6 py-4">Ngày bán</th>
@@ -367,9 +400,9 @@ const OrdersPage: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-gray-50 text-sm">
                   {filteredOrders.map(order => (
-                    <tr key={order.id} onClick={() => setSelectedOrder(order)} className="hover:bg-gray-50 transition-colors cursor-pointer">
+                    <tr key={order.id} onClick={() => setSelectedOrder(order)} className="hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors cursor-pointer">
                       <td className="px-6 py-4 font-mono font-medium text-primary">#{order.id.slice(-6).toUpperCase()}</td>
-                      <td className="px-6 py-4 text-gray-500">{new Date(order.date).toLocaleString('vi-VN')}</td>
+                      <td className="px-6 py-4 text-gray-500 dark:text-slate-300">{new Date(order.date).toLocaleString('vi-VN')}</td>
                       <td className="px-6 py-4 truncate max-w-[200px]">{order.items.map(i => i.name).join(', ')}</td>
                       <td className="px-6 py-4 font-bold">{order.totalAmount.toLocaleString()}đ</td>
                       <td className="px-6 py-4 text-right">
@@ -378,7 +411,7 @@ const OrdersPage: React.FC = () => {
                             e.stopPropagation();
                             handleExportPDF(order);
                           }}
-                          className="p-2 text-gray-400 hover:text-primary"
+                          className="p-2 text-gray-400 dark:text-slate-300 dark:text-slate-300 hover:text-primary"
                         >
                           <Download size={18} />
                         </button>
@@ -387,7 +420,7 @@ const OrdersPage: React.FC = () => {
                   ))}
                   {filteredOrders.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="py-20 text-center text-gray-400 italic">Không tìm thấy đơn hàng nào.</td>
+                      <td colSpan={5} className="py-20 text-center text-gray-400 dark:text-slate-300 dark:text-slate-300 italic">Không tìm thấy đơn hàng nào.</td>
                     </tr>
                   )}
                 </tbody>
@@ -401,22 +434,22 @@ const OrdersPage: React.FC = () => {
               onClick={() => setSelectedOrder(null)}
             >
               <div
-                className="w-full max-w-4xl bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden"
+                className="w-full max-w-4xl bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-gray-100 dark:border-slate-800 overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                <div className="px-5 py-4 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between">
                   <div>
-                    <div className="flex items-center gap-2 text-gray-900 font-bold">
+                    <div className="flex items-center gap-2 text-gray-900 dark:text-slate-100 font-bold">
                       <Eye size={18} />
                       <span>Chi tiet don hang #{selectedOrder.id.slice(-6).toUpperCase()}</span>
                     </div>
-                    <p className="text-sm text-gray-500 mt-1">
+                    <p className="text-sm text-gray-500 dark:text-slate-300 mt-1">
                       Ngay ban: {new Date(selectedOrder.date).toLocaleString('vi-VN')}
                     </p>
                   </div>
                   <button
                     onClick={() => setSelectedOrder(null)}
-                    className="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100"
+                    className="p-2 rounded-lg text-gray-400 dark:text-slate-300 dark:text-slate-300 hover:text-gray-700 dark:hover:text-slate-200 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800"
                   >
                     <X size={18} />
                   </button>
@@ -424,7 +457,7 @@ const OrdersPage: React.FC = () => {
 
                 <div className="max-h-[60vh] overflow-y-auto">
                   <table className="w-full text-sm">
-                    <thead className="bg-gray-50 border-b border-gray-100 text-xs font-bold text-gray-500 uppercase">
+                    <thead className="bg-gray-50 border-b border-gray-100 dark:border-slate-800 text-xs font-bold text-gray-500 dark:text-slate-300 uppercase">
                       <tr>
                         <th className="px-5 py-3 text-left">San pham</th>
                         <th className="px-5 py-3 text-left">Phan loai</th>
@@ -436,11 +469,11 @@ const OrdersPage: React.FC = () => {
                     <tbody className="divide-y divide-gray-50">
                       {selectedOrder.items.map((item, idx) => (
                         <tr key={`${item.productId}-${item.variantId}-${idx}`}>
-                          <td className="px-5 py-3 font-medium text-gray-800">{item.name}</td>
-                          <td className="px-5 py-3 text-gray-500">{item.variantName}</td>
-                          <td className="px-5 py-3 text-center font-semibold text-gray-700">{item.quantity}</td>
-                          <td className="px-5 py-3 text-right text-gray-700">{item.price.toLocaleString('vi-VN')} VND</td>
-                          <td className="px-5 py-3 text-right font-bold text-gray-900">
+                          <td className="px-5 py-3 font-medium text-gray-800 dark:text-slate-200">{item.name}</td>
+                          <td className="px-5 py-3 text-gray-500 dark:text-slate-300">{item.variantName}</td>
+                          <td className="px-5 py-3 text-center font-semibold text-gray-700 dark:text-slate-300">{item.quantity}</td>
+                          <td className="px-5 py-3 text-right text-gray-700 dark:text-slate-300">{item.price.toLocaleString('vi-VN')} VND</td>
+                          <td className="px-5 py-3 text-right font-bold text-gray-900 dark:text-slate-100">
                             {(item.price * item.quantity).toLocaleString('vi-VN')} VND
                           </td>
                         </tr>
@@ -449,11 +482,11 @@ const OrdersPage: React.FC = () => {
                   </table>
                 </div>
 
-                <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between">
-                  <span className="text-sm text-gray-500">
+                <div className="px-5 py-4 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between">
+                  <span className="text-sm text-gray-500 dark:text-slate-300">
                     Tong {selectedOrder.items.reduce((sum, i) => sum + i.quantity, 0)} san pham
                   </span>
-                  <span className="text-lg font-black text-gray-900">
+                  <span className="text-lg font-black text-gray-900 dark:text-slate-100">
                     {selectedOrder.totalAmount.toLocaleString('vi-VN')} VND
                   </span>
                 </div>
@@ -465,38 +498,38 @@ const OrdersPage: React.FC = () => {
 
       {/* POS UI - Inline Mode (Fullscreen within Layout) */}
       {isPosOpen && (
-        <div className="flex flex-col bg-white text-gray-900 overflow-hidden select-none h-full w-full relative">
+        <div className="flex flex-col bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 overflow-hidden select-none h-full w-full relative">
           {/* POS Header - Removed shadow for flush look */}
-          <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 shrink-0 transition-all">
+          <header className="h-14 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between px-4 shrink-0 transition-all">
             <div className="flex items-center gap-4 flex-1 mr-4">
               <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-300 dark:text-slate-300" size={16} />
                 <input
                   id="pos-search-input"
                   type="text"
                   placeholder="Tìm kiếm theo tên sản phẩm, SKU (F3)..."
                   value={posSearch}
                   onChange={(e) => setPosSearch(e.target.value)}
-                  className="w-full bg-gray-100 border-none rounded-none pl-9 pr-4 py-2 text-sm focus:ring-1 focus:ring-primary text-gray-900 placeholder-gray-500 outline-none transition-all"
+                  className="w-full bg-gray-100 border-none rounded-none pl-9 pr-4 py-2 text-sm focus:ring-1 focus:ring-primary text-gray-900 dark:text-slate-100 placeholder-gray-500 outline-none transition-all"
                 />
               </div>
-              <div className="flex items-center gap-1 text-gray-600">
+              <div className="flex items-center gap-1 text-gray-600 dark:text-slate-300">
                 <button title="Chế độ nhanh" className="p-2 bg-gray-100 rounded-none hover:bg-gray-200"><Zap size={18} /></button>
                 <button title="Danh sách" className="p-2 bg-gray-100 rounded-none hover:bg-gray-200"><Grid size={18} /></button>
-                <button className="bg-gray-100 text-gray-700 px-4 py-1.5 rounded-none flex items-center gap-2 text-sm font-bold hover:bg-gray-200 transition-colors border border-gray-200">
+                <button className="bg-gray-100 text-gray-700 dark:text-slate-300 px-4 py-1.5 rounded-none flex items-center gap-2 text-sm font-bold hover:bg-gray-200 transition-colors border border-gray-200 dark:border-slate-700">
                   <Table size={16} /> Quản lý bàn
                 </button>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 text-gray-600">
+            <div className="flex items-center gap-2 text-gray-600 dark:text-slate-300">
               <div className="bg-primary-light text-primary px-4 py-1.5 rounded-none flex items-center gap-2 text-sm font-bold border border-primary/20">
                 Mang về 1 <Plus size={14} />
               </div>
               <div className="h-8 w-[1px] bg-gray-300 mx-2"></div>
-              <button className="p-2 hover:bg-gray-100 rounded-none border border-transparent hover:border-gray-200 transition-colors"><ChevronRight size={18} className="rotate-180" /></button>
-              <button className="p-2 hover:bg-gray-100 rounded-none border border-transparent hover:border-gray-200 transition-colors"><Info size={18} /></button>
-              <button className="p-2 hover:bg-gray-100 rounded-none border border-transparent hover:border-gray-200 transition-colors"><Table size={18} /></button>
+              <button className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-none border border-transparent hover:border-gray-200 dark:border-slate-700 transition-colors"><ChevronRight size={18} className="rotate-180" /></button>
+              <button className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-none border border-transparent hover:border-gray-200 dark:border-slate-700 transition-colors"><Info size={18} /></button>
+              <button className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-none border border-transparent hover:border-gray-200 dark:border-slate-700 transition-colors"><Table size={18} /></button>
               <button onClick={closePos} className="p-2 hover:bg-red-50 text-red-500 rounded-none border border-transparent hover:border-red-200 transition-colors ml-2"><X size={20} /></button>
             </div>
           </header>
@@ -511,7 +544,7 @@ const OrdersPage: React.FC = () => {
                   <button
                     key={p.id}
                     onClick={() => addToCart(p)}
-                    className="aspect-square bg-white rounded-none border border-gray-200 p-0 flex flex-col justify-between items-center text-center relative group active:scale-95 transition-all overflow-hidden hover:border-primary"
+                    className="aspect-square bg-white dark:bg-slate-900 rounded-none border border-gray-200 dark:border-slate-700 p-0 flex flex-col justify-between items-center text-center relative group active:scale-95 transition-all overflow-hidden hover:border-primary"
                   >
                     {/* Price Badge */}
                     <div className="absolute top-2 right-2 bg-gray-900/70 px-1.5 py-0.5 rounded text-[10px] font-bold text-white z-10">
@@ -533,8 +566,8 @@ const OrdersPage: React.FC = () => {
                     </div>
 
                     {/* Name Footer */}
-                    <div className="w-full bg-white py-2 px-2 border-t border-gray-100">
-                      <p className="text-[12px] font-bold truncate text-gray-700">{p.name}</p>
+                    <div className="w-full bg-white dark:bg-slate-900 py-2 px-2 border-t border-gray-100 dark:border-slate-800">
+                      <p className="text-[12px] font-bold truncate text-gray-700 dark:text-slate-300">{p.name}</p>
                     </div>
                   </button>
                 ))}
@@ -542,13 +575,13 @@ const OrdersPage: React.FC = () => {
             </main>
 
             {/* Shopping Cart (Right) - Removed shadow for flush look */}
-            <aside className="w-[400px] bg-white border-l border-gray-200 flex flex-col shrink-0 z-10 transition-all">
+            <aside className="w-[400px] bg-white dark:bg-slate-900 border-l border-gray-200 dark:border-slate-700 flex flex-col shrink-0 z-10 transition-all">
               {/* Customer Search Section */}
-              <div className="p-4 border-b border-gray-100 flex gap-2 bg-white">
+              <div className="p-4 border-b border-gray-100 dark:border-slate-800 flex gap-2 bg-white dark:bg-slate-900">
                 <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-300 dark:text-slate-300" size={16} />
                   <input
-                    className="w-full bg-gray-50 border border-gray-200 rounded-none pl-9 pr-3 py-2 text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-primary focus:ring-0 transition-all"
+                    className="w-full bg-gray-50 border border-gray-200 dark:border-slate-700 rounded-none pl-9 pr-3 py-2 text-sm text-gray-900 dark:text-slate-100 placeholder-gray-400 outline-none focus:border-primary focus:ring-0 transition-all"
                     placeholder="Tìm tên/số điện thoại khách (ALT+C)"
                   />
                 </div>
@@ -560,30 +593,30 @@ const OrdersPage: React.FC = () => {
               {/* Cart Items List */}
               <div className="flex-1 overflow-y-auto custom-scrollbar bg-gray-50/30">
                 {cart.map((item, idx) => (
-                  <div key={idx} className="p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors relative group bg-white">
+                  <div key={idx} className="p-4 border-b border-gray-100 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors relative group bg-white dark:bg-slate-900">
                     <div className="flex justify-between items-start gap-4">
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-bold text-sm text-gray-800 truncate">{item.name}</h4>
-                        <p className="text-[10px] text-gray-500 mt-0.5">{item.variantName}</p>
+                        <h4 className="font-bold text-sm text-gray-800 dark:text-slate-200 truncate">{item.name}</h4>
+                        <p className="text-[10px] text-gray-500 dark:text-slate-300 mt-0.5">{item.variantName}</p>
                         <button className="text-[11px] text-blue-500 italic flex items-center gap-1 mt-2 hover:text-blue-600 transition-colors">
                           <Edit2 size={10} /> Nhập ghi chú
                         </button>
                       </div>
                       <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-none px-2 py-1">
-                          <button onClick={() => updateCartQuantity(item.productId, item.variantId, -1)} className="p-1 text-gray-400 hover:text-gray-700 transition-colors"><Minus size={12} /></button>
+                        <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-none px-2 py-1">
+                          <button onClick={() => updateCartQuantity(item.productId, item.variantId, -1)} className="p-1 text-gray-400 dark:text-slate-300 dark:text-slate-300 hover:text-gray-700 dark:hover:text-slate-200 dark:text-slate-300 transition-colors"><Minus size={12} /></button>
                           <span className="text-sm font-black w-6 text-center text-primary">{item.quantity}</span>
                           <button onClick={() => updateCartQuantity(item.productId, item.variantId, 1)} className="p-1 text-primary hover:opacity-80 transition-colors"><Plus size={12} /></button>
                         </div>
                         <div className="text-right min-w-[85px]">
                           <button
                             onClick={() => openPriceEdit(idx)}
-                            className="text-sm font-black text-gray-800 border-b border-dotted border-gray-300 hover:text-blue-600 hover:border-blue-600 transition-all"
+                            className="text-sm font-black text-gray-800 dark:text-slate-200 border-b border-dotted border-gray-300 hover:text-blue-600 hover:border-blue-600 transition-all"
                           >
                             {(item.price * item.quantity).toLocaleString()}
                           </button>
                         </div>
-                        <button onClick={() => removeFromCart(item.productId, item.variantId)} className="p-1 text-gray-400 hover:text-red-500 transition-colors">
+                        <button onClick={() => removeFromCart(item.productId, item.variantId)} className="p-1 text-gray-400 dark:text-slate-300 dark:text-slate-300 hover:text-red-500 transition-colors">
                           <Trash2 size={16} />
                         </button>
                       </div>
@@ -593,38 +626,38 @@ const OrdersPage: React.FC = () => {
                     {editingCartItemIndex === idx && (
                       <>
                         <div className="fixed inset-0 z-[80]" onClick={() => setEditingCartItemIndex(null)} />
-                        <div className="absolute right-4 top-16 z-[90] bg-white border border-gray-200 rounded-2xl shadow-lg p-6 w-[350px] animate-in fade-in zoom-in duration-200">
+                        <div className="absolute right-4 top-16 z-[90] bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-2xl shadow-lg p-6 w-[350px] animate-in fade-in zoom-in duration-200">
                           <div className="space-y-6">
                             <div className="flex justify-between items-center">
-                              <span className="text-sm text-gray-500 font-medium">Giá bán kèm</span>
-                              <span className="font-bold text-gray-800">0</span>
+                              <span className="text-sm text-gray-500 dark:text-slate-300 font-medium">Giá bán kèm</span>
+                              <span className="font-bold text-gray-800 dark:text-slate-200">0</span>
                             </div>
                             <div className="flex items-center gap-4">
-                              <span className="text-sm text-gray-500 w-24 font-medium">Giá bán</span>
+                              <span className="text-sm text-gray-500 dark:text-slate-300 w-24 font-medium">Giá bán</span>
                               <div className="flex-1 relative">
                                 <input
                                   type="number"
                                   value={tempPrice}
                                   onChange={(e) => setTempPrice(Number(e.target.value))}
-                                  className="w-full bg-white border border-primary rounded-xl px-4 py-3 text-right text-lg font-black text-gray-900 outline-none focus:ring-2 focus:ring-primary/20 shadow-sm"
+                                  className="w-full bg-white dark:bg-slate-900 border border-primary rounded-xl px-4 py-3 text-right text-lg font-black text-gray-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-primary/20 shadow-sm"
                                   autoFocus
                                 />
-                                <div className="absolute right-3 bottom-0 text-[10px] text-gray-400 font-bold mb-1">VNĐ</div>
+                                <div className="absolute right-3 bottom-0 text-[10px] text-gray-400 dark:text-slate-300 dark:text-slate-300 font-bold mb-1">VNĐ</div>
                               </div>
                             </div>
                             <div className="flex items-center gap-4">
                               <div className="flex items-center gap-2 w-24">
-                                <span className="text-sm text-gray-500 font-medium">Chiết khấu</span>
-                                <div className="flex bg-gray-100 rounded-lg p-0.5 border border-gray-200">
+                                <span className="text-sm text-gray-500 dark:text-slate-300 font-medium">Chiết khấu</span>
+                                <div className="flex bg-gray-100 rounded-lg p-0.5 border border-gray-200 dark:border-slate-700">
                                   <button
                                     type="button"
                                     onClick={() => setDiscountType('vnd')}
-                                    className={`px-2 py-0.5 text-[9px] font-black rounded ${discountType === 'vnd' ? 'bg-primary text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                    className={`px-2 py-0.5 text-[9px] font-black rounded ${discountType === 'vnd' ? 'bg-primary text-white shadow-sm' : 'text-gray-500 dark:text-slate-300 hover:text-gray-700 dark:hover:text-slate-200 dark:text-slate-300'}`}
                                   >VNĐ</button>
                                   <button
                                     type="button"
                                     onClick={() => setDiscountType('%')}
-                                    className={`px-2 py-0.5 text-[9px] font-black rounded ${discountType === '%' ? 'bg-primary text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                    className={`px-2 py-0.5 text-[9px] font-black rounded ${discountType === '%' ? 'bg-primary text-white shadow-sm' : 'text-gray-500 dark:text-slate-300 hover:text-gray-700 dark:hover:text-slate-200 dark:text-slate-300'}`}
                                   >%</button>
                                 </div>
                               </div>
@@ -633,7 +666,7 @@ const OrdersPage: React.FC = () => {
                                   type="number"
                                   value={discountValue}
                                   onChange={(e) => setDiscountValue(Number(e.target.value))}
-                                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-right text-lg font-black text-gray-900 outline-none focus:border-primary/40 focus:ring-1 focus:ring-primary/40"
+                                  className="w-full bg-gray-50 border border-gray-200 dark:border-slate-700 rounded-xl px-4 py-3 text-right text-lg font-black text-gray-900 dark:text-slate-100 outline-none focus:border-primary/40 focus:ring-1 focus:ring-primary/40"
                                   placeholder="0"
                                 />
                               </div>
@@ -641,7 +674,7 @@ const OrdersPage: React.FC = () => {
                             <div className="flex gap-3 pt-2">
                               <button
                                 onClick={() => setEditingCartItemIndex(null)}
-                                className="flex-1 bg-gray-100 py-3.5 rounded-xl text-sm font-black text-gray-600 hover:bg-gray-200 transition-colors border border-gray-200"
+                                className="flex-1 bg-gray-100 py-3.5 rounded-xl text-sm font-black text-gray-600 dark:text-slate-300 hover:bg-gray-200 transition-colors border border-gray-200 dark:border-slate-700"
                               >Thiết lập lại</button>
                               <button
                                 onClick={applyPriceEdit}
@@ -655,24 +688,24 @@ const OrdersPage: React.FC = () => {
                   </div>
                 ))}
                 {cart.length === 0 && (
-                  <div className="flex flex-col items-center justify-center py-24 text-gray-400 opacity-80">
+                  <div className="flex flex-col items-center justify-center py-24 text-gray-400 dark:text-slate-300 dark:text-slate-300 opacity-80">
                     <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                       <ShoppingCart size={40} className="text-gray-300" />
                     </div>
-                    <p className="font-bold mt-2 uppercase tracking-widest text-[11px] text-gray-500">Chưa có sản phẩm</p>
+                    <p className="font-bold mt-2 uppercase tracking-widest text-[11px] text-gray-500 dark:text-slate-300">Chưa có sản phẩm</p>
                   </div>
                 )}
               </div>
 
               {/* Cart Summary & Actions Footer */}
-              <div className="p-4 border-t border-gray-200 bg-white space-y-4">
+              <div className="p-4 border-t border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 space-y-4">
                 <div className="flex justify-between items-end">
-                  <span className="text-sm text-gray-500 font-bold">Tổng {cart.reduce((s, i) => s + i.quantity, 0)} sản phẩm</span>
+                  <span className="text-sm text-gray-500 dark:text-slate-300 font-bold">Tổng {cart.reduce((s, i) => s + i.quantity, 0)} sản phẩm</span>
                   <div className="text-right">
-                    <span className="text-2xl font-black text-gray-900">
+                    <span className="text-2xl font-black text-gray-900 dark:text-slate-100">
                       {cart.reduce((s, i) => s + (i.price * i.quantity), 0).toLocaleString()}
                     </span>
-                    <span className="text-[12px] text-gray-500 font-bold ml-1">VNĐ</span>
+                    <span className="text-[12px] text-gray-500 dark:text-slate-300 font-bold ml-1">VNĐ</span>
                   </div>
                 </div>
 
@@ -680,14 +713,14 @@ const OrdersPage: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <div className="relative flex-1">
                     <input
-                      className="w-full bg-gray-50 border border-gray-200 rounded-none pl-4 pr-10 py-2.5 text-xs text-gray-800 outline-none placeholder-gray-400 focus:border-primary/40 focus:ring-0"
+                      className="w-full bg-gray-50 border border-gray-200 dark:border-slate-700 rounded-none pl-4 pr-10 py-2.5 text-xs text-gray-800 dark:text-slate-200 outline-none placeholder-gray-400 focus:border-primary/40 focus:ring-0"
                       placeholder="Ghi chú đơn hàng..."
                     />
-                    <ImageIcon className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                    <ImageIcon className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-300 dark:text-slate-300" size={16} />
                   </div>
                   <div className="flex gap-1">
                     {[Tag, Truck, CreditCard, Gift, MoreVertical].map((Icon, idx) => (
-                      <button key={idx} className="p-2.5 bg-gray-50 rounded-none text-gray-500 hover:text-gray-700 border border-gray-200 hover:bg-gray-100 transition-colors">
+                      <button key={idx} className="p-2.5 bg-gray-50 rounded-none text-gray-500 dark:text-slate-300 hover:text-gray-700 dark:hover:text-slate-200 dark:text-slate-300 border border-gray-200 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">
                         <Icon size={18} />
                       </button>
                     ))}
@@ -695,7 +728,7 @@ const OrdersPage: React.FC = () => {
                 </div>
 
                 {/* Main Action Buttons */}
-                <div className="grid grid-cols-2 gap-0 border border-gray-200">
+                <div className="grid grid-cols-2 gap-0 border border-gray-200 dark:border-slate-700">
                   <button
                     onClick={handleCheckout}
                     className="bg-blue-600 text-white py-3.5 rounded-none font-black text-sm hover:bg-blue-700 flex flex-col items-center justify-center leading-tight active:scale-95 transition-all group border-r border-blue-500"
@@ -723,12 +756,12 @@ const OrdersPage: React.FC = () => {
           {/* Checkout Error UI */}
           {error && (
             <div className="absolute inset-0 z-50 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-8 animate-in fade-in duration-200 rounded-none">
-              <div className="bg-white p-6 rounded-none border border-red-200 w-full max-w-sm text-center shadow-none animate-in zoom-in-95">
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-none border border-red-200 w-full max-w-sm text-center shadow-none animate-in zoom-in-95">
                 <div className="w-16 h-16 bg-red-50 text-red-500 rounded-none flex items-center justify-center mb-4 mx-auto border border-red-100">
                   <AlertCircle size={32} />
                 </div>
-                <h3 className="text-xl font-black text-gray-900 mb-2">Không thể thanh toán</h3>
-                <p className="text-gray-500 text-sm mb-6">{error}</p>
+                <h3 className="text-xl font-black text-gray-900 dark:text-slate-100 mb-2">Không thể thanh toán</h3>
+                <p className="text-gray-500 dark:text-slate-300 text-sm mb-6">{error}</p>
                 <button
                   onClick={() => setError(null)}
                   className="w-full bg-red-500 text-white py-3.5 rounded-none font-bold hover:bg-red-600 transition-all shadow-none"
@@ -744,13 +777,13 @@ const OrdersPage: React.FC = () => {
               <div className="w-24 h-24 bg-primary text-white rounded-none flex items-center justify-center mb-8 shadow-none animate-in zoom-in-50">
                 <Check size={56} strokeWidth={4} />
               </div>
-              <h2 className="text-4xl font-black mb-4 tracking-tight text-gray-900">THANH TOÁN XONG!</h2>
-              <div className="bg-white p-6 rounded-none border border-gray-200 w-full max-w-sm mb-12 text-center shadow-none">
-                <p className="text-gray-500 text-sm mb-2">Mã hóa đơn</p>
+              <h2 className="text-4xl font-black mb-4 tracking-tight text-gray-900 dark:text-slate-100">THANH TOÁN XONG!</h2>
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-none border border-gray-200 dark:border-slate-700 w-full max-w-sm mb-12 text-center shadow-none">
+                <p className="text-gray-500 dark:text-slate-300 text-sm mb-2">Mã hóa đơn</p>
                 <p className="text-2xl font-black font-mono text-primary">#{checkoutSuccess.id.slice(-6).toUpperCase()}</p>
                 <div className="h-[1px] bg-gray-100 my-4"></div>
-                <p className="text-gray-500 text-sm mb-2">Tổng thanh toán</p>
-                <p className="text-3xl font-black text-gray-900">{checkoutSuccess.totalAmount.toLocaleString()} VNĐ</p>
+                <p className="text-gray-500 dark:text-slate-300 text-sm mb-2">Tổng thanh toán</p>
+                <p className="text-3xl font-black text-gray-900 dark:text-slate-100">{checkoutSuccess.totalAmount.toLocaleString()} VNĐ</p>
               </div>
               <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
                 <button
@@ -761,7 +794,7 @@ const OrdersPage: React.FC = () => {
                 </button>
                 <button
                   onClick={() => { setCheckoutSuccess(null); setIsPosOpen(false); if (location.pathname === '/pos') navigate('/'); }}
-                  className="flex-1 bg-gray-200 text-gray-800 py-4 rounded-none font-black hover:bg-gray-300 transition-all text-lg"
+                  className="flex-1 bg-gray-200 text-gray-800 dark:text-slate-200 py-4 rounded-none font-black hover:bg-gray-300 transition-all text-lg"
                 >
                   Đóng cửa sổ
                 </button>
@@ -772,28 +805,28 @@ const OrdersPage: React.FC = () => {
           {/* Variant Selector Backdrop */}
           {selectedProductForCart && (
             <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm animate-in fade-in duration-200 rounded-none">
-              <div className="bg-white w-full max-w-sm rounded-none border border-gray-100 shadow-none overflow-hidden animate-in zoom-in-95 duration-200">
-                <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+              <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-none border border-gray-100 dark:border-slate-800 shadow-none overflow-hidden animate-in zoom-in-95 duration-200">
+                <div className="p-5 border-b border-gray-100 dark:border-slate-800 flex justify-between items-center bg-gray-50">
                   <div>
-                    <h4 className="font-black text-lg text-gray-900">{selectedProductForCart.name}</h4>
+                    <h4 className="font-black text-lg text-gray-900 dark:text-slate-100">{selectedProductForCart.name}</h4>
                     <p className="text-[10px] text-primary uppercase font-black tracking-widest">Chọn phân loại sản phẩm</p>
                   </div>
-                  <button onClick={() => setSelectedProductForCart(null)} className="p-2 hover:bg-gray-200 text-gray-500 rounded-none transition-colors"><X size={20} /></button>
+                  <button onClick={() => setSelectedProductForCart(null)} className="p-2 hover:bg-gray-200 text-gray-500 dark:text-slate-300 rounded-none transition-colors"><X size={20} /></button>
                 </div>
-                <div className="p-3 max-h-[60vh] overflow-y-auto custom-scrollbar bg-white">
+                <div className="p-3 max-h-[60vh] overflow-y-auto custom-scrollbar bg-white dark:bg-slate-900">
                   {selectedProductForCart.variants.map(v => (
                     <button
                       key={v.id}
                       disabled={v.stock === 0}
                       onClick={() => addToCart(selectedProductForCart, v)}
-                      className={`w-full flex justify-between items-center p-4 rounded-none mb-2 transition-all border ${v.stock > 0 ? 'bg-gray-50 border-gray-100 hover:bg-primary-light hover:border-primary/20 text-gray-800 active:scale-95' : 'opacity-50 bg-gray-50 border-gray-100 cursor-not-allowed'}`}
+                      className={`w-full flex justify-between items-center p-4 rounded-none mb-2 transition-all border ${v.stock > 0 ? 'bg-gray-50 border-gray-100 dark:border-slate-800 hover:bg-primary-light hover:border-primary/20 text-gray-800 dark:text-slate-200 active:scale-95' : 'opacity-50 bg-gray-50 border-gray-100 dark:border-slate-800 cursor-not-allowed'}`}
                     >
                       <div className="text-left">
-                        <p className={`font-bold text-sm ${v.stock === 0 ? 'text-gray-400' : 'text-gray-900'}`}>{v.name}</p>
-                        <p className={`text-[10px] font-black mt-1 uppercase tracking-tighter ${v.stock === 0 ? 'text-gray-400' : 'text-gray-500'}`}>Tồn kho: {v.stock}</p>
+                        <p className={`font-bold text-sm ${v.stock === 0 ? 'text-gray-400 dark:text-slate-300 dark:text-slate-300' : 'text-gray-900 dark:text-slate-100'}`}>{v.name}</p>
+                        <p className={`text-[10px] font-black mt-1 uppercase tracking-tighter ${v.stock === 0 ? 'text-gray-400 dark:text-slate-300 dark:text-slate-300' : 'text-gray-500 dark:text-slate-300'}`}>Tồn kho: {v.stock}</p>
                       </div>
                       <div className="text-right">
-                        <span className={`font-black ${v.stock === 0 ? 'text-gray-400' : 'text-primary'}`}>{v.price.toLocaleString()}đ</span>
+                        <span className={`font-black ${v.stock === 0 ? 'text-gray-400 dark:text-slate-300 dark:text-slate-300' : 'text-primary'}`}>{v.price.toLocaleString()}đ</span>
                       </div>
                     </button>
                   ))}
@@ -808,3 +841,5 @@ const OrdersPage: React.FC = () => {
 };
 
 export default OrdersPage;
+
+

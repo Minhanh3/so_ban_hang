@@ -1,4 +1,4 @@
-
+﻿
 import React from 'react';
 // @fix: Corrected useLocation and Link imports from react-router-dom
 import { useLocation, Link } from "react-router-dom";
@@ -16,14 +16,14 @@ const StubPage: React.FC = () => {
         Quay lại Việc cần làm
       </Link>
       
-      <div className="bg-white rounded-2xl p-10 border border-gray-100 shadow-sm text-center">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl p-10 border border-gray-100 dark:border-slate-800 shadow-sm text-center">
         <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
           <span className="text-3xl font-bold text-blue-600 uppercase">
             {location.pathname.replace('/', '')[0]}
           </span>
         </div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Trang {location.pathname}</h1>
-        <p className="text-gray-500 max-w-md mx-auto">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-slate-100 mb-2">Trang {location.pathname}</h1>
+        <p className="text-gray-500 dark:text-slate-300 max-w-md mx-auto">
           Đây là màn hình stub mô phỏng chức năng chi tiết cho mục tiêu điều hướng. 
           {statusFilter && (
             <span className="block mt-4 p-2 bg-yellow-50 text-yellow-700 rounded-lg font-mono text-sm border border-yellow-100">
@@ -42,3 +42,5 @@ const StubPage: React.FC = () => {
 };
 
 export default StubPage;
+
+

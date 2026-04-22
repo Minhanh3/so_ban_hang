@@ -1,5 +1,6 @@
 
 import { Order, Product, Debt, ImportReceipt, ShopSettings, StockLog, StockChangeReason } from '../types';
+import { getCurrentUserId, getScopedStorageKey, LEGACY_STORAGE_OWNER_KEY } from './auth';
 
 // ─── Storage Keys ───────────────────────────────────────────────────────────
 const KEYS = {
@@ -17,12 +18,61 @@ const DEFAULT_SETTINGS: ShopSettings = {
     phone: '',
     address: '',
   },
+  orderFilePrefix: '',
 };
+
+type StorageKey = typeof KEYS[keyof typeof KEYS];
+
+const STORAGE_KEYS: StorageKey[] = Object.values(KEYS);
+
+function hasStoredValue(key: string): boolean {
+  return localStorage.getItem(key) !== null;
+}
+
+function getLegacyOwnerId(): string | null {
+  return localStorage.getItem(LEGACY_STORAGE_OWNER_KEY);
+}
+
+function ensureLegacyMigration(userId: string): void {
+  const ownerId = getLegacyOwnerId();
+  if (ownerId && ownerId !== userId) {
+    return;
+  }
+
+  const hasLegacyData = STORAGE_KEYS.some((key) => hasStoredValue(key));
+  if (!hasLegacyData) {
+    return;
+  }
+
+  for (const legacyKey of STORAGE_KEYS) {
+    const scopedKey = getScopedStorageKey(legacyKey, userId);
+    if (!hasStoredValue(scopedKey) && hasStoredValue(legacyKey)) {
+      const legacyValue = localStorage.getItem(legacyKey);
+      if (legacyValue !== null) {
+        localStorage.setItem(scopedKey, legacyValue);
+      }
+    }
+  }
+
+  if (!ownerId) {
+    localStorage.setItem(LEGACY_STORAGE_OWNER_KEY, userId);
+  }
+}
+
+function resolveStorageKey(baseKey: string): string {
+  const userId = getCurrentUserId();
+  if (!userId) {
+    return baseKey;
+  }
+
+  ensureLegacyMigration(userId);
+  return getScopedStorageKey(baseKey, userId);
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function load<T>(key: string): T[] {
   try {
-    const raw = localStorage.getItem(key);
+    const raw = localStorage.getItem(resolveStorageKey(key));
     return raw ? (JSON.parse(raw) as T[]) : [];
   } catch {
     return [];
@@ -30,12 +80,12 @@ function load<T>(key: string): T[] {
 }
 
 function save<T>(key: string, data: T[]): void {
-  localStorage.setItem(key, JSON.stringify(data));
+  localStorage.setItem(resolveStorageKey(key), JSON.stringify(data));
 }
 
 function loadObject<T>(key: string, fallback: T): T {
   try {
-    const raw = localStorage.getItem(key);
+    const raw = localStorage.getItem(resolveStorageKey(key));
     return raw ? ({ ...fallback, ...JSON.parse(raw) } as T) : fallback;
   } catch {
     return fallback;
@@ -266,6 +316,7 @@ export const db = {
         phone: settings?.distributor?.phone || '',
         address: settings?.distributor?.address || '',
       },
+      orderFilePrefix: settings?.orderFilePrefix || '',
     };
   },
 
@@ -276,8 +327,9 @@ export const db = {
         phone: settings?.distributor?.phone?.trim() || '',
         address: settings?.distributor?.address?.trim() || '',
       },
+      orderFilePrefix: settings?.orderFilePrefix?.trim() || '',
     };
-    localStorage.setItem(KEYS.SHOP_SETTINGS, JSON.stringify(normalized));
+    localStorage.setItem(resolveStorageKey(KEYS.SHOP_SETTINGS), JSON.stringify(normalized));
   },
 
   // ── DEBTS ─────────────────────────────────────────────────────────────────

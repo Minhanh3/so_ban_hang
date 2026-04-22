@@ -1,6 +1,25 @@
 import React, { useState } from 'react';
-import { Menu, X, Bell, User, LayoutDashboard, ShoppingBag, Box, Users, CreditCard, PieChart, ChevronRight, Store, Palette, Truck, Settings } from 'lucide-react';
-import { Link, useLocation } from "react-router-dom";
+import {
+  Bell,
+  Box,
+  ChevronRight,
+  CreditCard,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  Moon,
+  Palette,
+  PieChart,
+  Settings,
+  ShoppingBag,
+  Store,
+  Sun,
+  Truck,
+  Users,
+  X,
+} from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../src/context/AuthContext';
 import { useTheme } from '../src/context/ThemeContext';
 
 interface LayoutProps {
@@ -10,8 +29,16 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isThemeOpen, setIsThemeOpen] = useState(false);
-  const { primaryColor, setPrimaryColor } = useTheme();
+  const { primaryColor, setPrimaryColor, themeMode, toggleThemeMode } = useTheme();
+  const { user, logout } = useAuth();
   const location = useLocation();
+
+  const userInitials = (user?.displayName || user?.username || 'AD')
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('') || 'AD';
 
   const colorPresets = [
     { name: 'Green', value: '#16a34a' },
@@ -35,29 +62,30 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { label: 'Cài đặt', path: '/settings', icon: <Settings size={20} /> },
   ];
 
-  const currentLabel = menuItems.find(m => m.path === location.pathname)?.label || 'Bảng điều khiển';
+  const currentLabel = menuItems.find((item) => item.path === location.pathname)?.label || 'Bảng điều khiển';
+  const isPosPage = location.pathname.includes('pos') || window.location.hash.includes('pos');
 
   return (
-    <div className="flex h-screen bg-[#f8fafc] w-full overflow-hidden text-slate-900">
-      {/* Sidebar Desktop & Mobile */}
-      <aside className={`
-        fixed md:relative inset-y-0 left-0 w-64 bg-white border-r border-slate-200 z-[70] 
-        transform transition-transform duration-300 ease-in-out flex flex-col shrink-0
-        ${isMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-      `}>
-        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+    <div className="flex h-screen w-full overflow-hidden bg-[#f8fafc] text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+      <aside
+        className={`
+          fixed inset-y-0 left-0 z-[70] flex w-64 shrink-0 transform flex-col border-r border-slate-200 bg-white transition-transform duration-300 ease-in-out md:relative dark:border-slate-800 dark:bg-slate-900
+          ${isMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+        `}
+      >
+        <div className="flex items-center justify-between border-b border-slate-100 p-6 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary-light">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white shadow-lg shadow-primary-light">
               <Store size={22} />
             </div>
-            <span className="text-xl font-black text-slate-800 tracking-tight">Sổ Bán Hàng</span>
+            <span className="text-xl font-black tracking-tight text-slate-800 dark:text-slate-100">Sổ Bán Hàng</span>
           </div>
-          <button onClick={() => setIsMenuOpen(false)} className="md:hidden p-1 text-slate-400">
+          <button onClick={() => setIsMenuOpen(false)} className="p-1 text-slate-400 md:hidden">
             <X size={20} />
           </button>
         </div>
 
-        <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
+        <nav className="flex-1 space-y-1 overflow-y-auto px-4 py-6">
           {menuItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
@@ -66,14 +94,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 to={item.path}
                 onClick={() => setIsMenuOpen(false)}
                 className={`
-                  flex items-center justify-between px-4 py-3.5 rounded-xl text-sm font-bold transition-all group
-                  ${isActive 
-                    ? 'bg-primary text-white shadow-lg shadow-primary-light' 
-                    : 'text-slate-500 hover:bg-slate-50 hover:text-primary'}
+                  group flex items-center justify-between rounded-xl px-4 py-3.5 text-sm font-bold transition-all
+                  ${isActive
+                    ? 'bg-primary text-white shadow-lg shadow-primary-light'
+                    : 'text-slate-500 hover:bg-slate-50 hover:text-primary dark:text-slate-300 dark:hover:bg-slate-800/70'}
                 `}
               >
                 <div className="flex items-center gap-3">
-                  <span className={`${isActive ? 'text-white' : 'text-slate-400 group-hover:text-primary transition-colors'}`}>
+                  <span className={isActive ? 'text-white' : 'text-slate-400 transition-colors group-hover:text-primary dark:text-slate-500'}>
                     {item.icon}
                   </span>
                   {item.label}
@@ -84,56 +112,67 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           })}
         </nav>
 
-        <div className="p-4 border-t border-slate-100">
-          <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50">
-            <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-600 border border-white">
-              AD
+        <div className="border-t border-slate-100 p-4 dark:border-slate-800">
+          <div className="flex items-center gap-3 rounded-2xl bg-slate-50 p-3 dark:bg-slate-800">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white bg-slate-200 font-bold text-slate-600 dark:border-slate-700 dark:bg-slate-700 dark:text-slate-200">
+              {userInitials}
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-slate-900 truncate">Admin Shop</p>
-              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Phiên bản Pro</p>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-bold text-slate-900 dark:text-slate-100">{user?.displayName || 'Tài khoản'}</p>
+              <p className="truncate text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                @{user?.username || 'guest'}
+              </p>
             </div>
+            <button
+              onClick={logout}
+              className="rounded-xl p-2 text-slate-400 transition-colors hover:bg-white hover:text-rose-500"
+              title="Đăng xuất"
+            >
+              <LogOut size={16} />
+            </button>
           </div>
         </div>
       </aside>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-[#f8fafc]">
-        {/* Header */}
-        {!(location.pathname.includes('pos') || window.location.hash.includes('pos')) && (
-          <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0 z-50">
+      <div className="flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-[#f8fafc] dark:bg-slate-950">
+        {!isPosPage && (
+          <header className="z-50 flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-6 dark:border-slate-800 dark:bg-slate-900">
             <div className="flex items-center gap-4">
-              <button 
+              <button
                 onClick={() => setIsMenuOpen(true)}
-                className="md:hidden p-2 hover:bg-slate-100 rounded-lg text-slate-600"
+                className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 md:hidden"
               >
                 <Menu size={24} />
               </button>
-              <h2 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] hidden sm:block">
+              <h2 className="hidden text-xs font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 sm:block">
                 {currentLabel}
               </h2>
             </div>
 
             <div className="flex items-center gap-3">
-              {/* Theme Selector */}
+              <button
+                onClick={toggleThemeMode}
+                className="rounded-xl p-2 text-slate-400 transition-colors hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
+                title={themeMode === 'dark' ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối'}
+              >
+                {themeMode === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+              </button>
+
               <div className="relative">
-                <button 
+                <button
                   onClick={() => setIsThemeOpen(!isThemeOpen)}
-                  className={`p-2 rounded-xl transition-colors ${isThemeOpen ? 'bg-primary-light text-primary' : 'text-slate-400 hover:bg-slate-50'}`}
+                  className={`rounded-xl p-2 transition-colors ${isThemeOpen ? 'bg-primary-light text-primary' : 'text-slate-400 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800'}`}
                   title="Đổi màu giao diện"
                 >
                   <Palette size={20} />
                 </button>
-                
+
                 {isThemeOpen && (
                   <>
-                    <div 
-                      className="fixed inset-0 z-40" 
-                      onClick={() => setIsThemeOpen(false)}
-                    />
-                    <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-2xl shadow-2xl z-50 p-4">
-                      <p className="text-xs font-black text-slate-400 uppercase tracking-wider mb-3">Màu chủ đạo</p>
-                      <div className="grid grid-cols-4 gap-2 mb-4">
+                    <div className="fixed inset-0 z-40" onClick={() => setIsThemeOpen(false)} />
+                    <div className="absolute right-0 z-50 mt-2 w-56 rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+                      <p className="mb-3 text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">Màu chủ đạo</p>
+                      <div className="mb-4 grid grid-cols-4 gap-2">
                         {colorPresets.map((color) => (
                           <button
                             key={color.value}
@@ -141,19 +180,19 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                               setPrimaryColor(color.value);
                               setIsThemeOpen(false);
                             }}
-                            className={`w-full aspect-square rounded-lg border-2 transition-transform hover:scale-110 ${primaryColor === color.value ? 'border-primary' : 'border-transparent'}`}
+                            className={`aspect-square w-full rounded-lg border-2 transition-transform hover:scale-110 ${primaryColor === color.value ? 'border-primary' : 'border-transparent'}`}
                             style={{ backgroundColor: color.value }}
                             title={color.name}
                           />
                         ))}
                       </div>
-                      <div className="pt-3 border-t border-slate-100">
-                        <p className="text-[10px] text-slate-500 font-bold mb-2">MÀU TỰ CHỌN</p>
-                        <input 
-                          type="color" 
+                      <div className="border-t border-slate-100 pt-3 dark:border-slate-700">
+                        <p className="mb-2 text-[10px] font-bold text-slate-500 dark:text-slate-400">MÀU TỰ CHỌN</p>
+                        <input
+                          type="color"
                           value={primaryColor}
-                          onChange={(e) => setPrimaryColor(e.target.value)}
-                          className="w-full h-8 rounded-lg cursor-pointer border-none bg-transparent"
+                          onChange={(event) => setPrimaryColor(event.target.value)}
+                          className="h-8 w-full cursor-pointer rounded-lg border-none bg-transparent"
                         />
                       </div>
                     </div>
@@ -161,33 +200,35 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 )}
               </div>
 
-              <button className="p-2 text-slate-400 hover:bg-slate-50 rounded-xl relative transition-colors">
+              <button className="relative rounded-xl p-2 text-slate-400 transition-colors hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800">
                 <Bell size={20} />
-                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></span>
+                <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
               </button>
-              <div className="h-8 w-[1px] bg-slate-200 mx-1"></div>
-              <button className="flex items-center gap-2 p-1 hover:bg-slate-50 rounded-xl pr-3 transition-colors">
-                <div className="w-8 h-8 rounded-full bg-primary-light flex items-center justify-center text-primary font-bold text-xs">
-                  <User size={16} />
+              <div className="mx-1 h-8 w-[1px] bg-slate-200 dark:bg-slate-700" />
+              <button
+                onClick={logout}
+                className="flex items-center gap-2 rounded-xl p-1 pr-3 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800"
+                title="Đăng xuất"
+              >
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-light text-xs font-bold text-primary">
+                  {userInitials}
                 </div>
-                <span className="text-sm font-bold text-slate-700 hidden lg:block">Quản trị viên</span>
+                <span className="hidden text-sm font-bold text-slate-700 dark:text-slate-200 lg:block">{user?.displayName || 'Tài khoản'}</span>
               </button>
             </div>
           </header>
         )}
 
-        {/* Page Scrolling Area */}
-        <main className={`flex-1 overflow-y-auto custom-scrollbar ${(location.pathname.includes('pos') || window.location.hash.includes('pos')) ? 'p-0' : 'p-4 md:p-8'}`}>
-          <div className={`${(location.pathname.includes('pos') || window.location.hash.includes('pos')) ? 'w-full h-full' : 'max-w-7xl mx-auto pb-12'}`}>
+        <main className={`custom-scrollbar flex-1 overflow-y-auto ${isPosPage ? 'p-0' : 'p-4 md:p-8'}`}>
+          <div className={isPosPage ? 'h-full w-full' : 'mx-auto max-w-7xl pb-12'}>
             {children}
           </div>
         </main>
       </div>
 
-      {/* Mobile Backdrop */}
       {isMenuOpen && (
-        <div 
-          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[65] md:hidden"
+        <div
+          className="fixed inset-0 z-[65] bg-slate-900/40 backdrop-blur-sm md:hidden"
           onClick={() => setIsMenuOpen(false)}
         />
       )}

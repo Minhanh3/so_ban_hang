@@ -1,4 +1,4 @@
-
+﻿
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageSquare, Send, X, Bot, Loader2 } from 'lucide-react';
 import { askGemini } from '../services/gemini';
@@ -41,33 +41,33 @@ const AIAssistant: React.FC = () => {
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
       {isOpen && (
-        <div className="w-80 md:w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col mb-4 overflow-hidden max-h-[500px]">
+        <div className="w-80 md:w-96 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 flex flex-col mb-4 overflow-hidden max-h-[500px]">
           <div className="bg-primary p-4 text-white flex justify-between items-center">
             <div className="flex items-center gap-2">
               <Bot size={20} />
               <span className="font-semibold">Trợ lý AI (SQL Assistant)</span>
             </div>
-            <button onClick={() => setIsOpen(false)} className="hover:bg-white/20 p-1 rounded transition-colors">
+            <button onClick={() => setIsOpen(false)} className="hover:bg-white/20 dark:hover:bg-white/10 p-1 rounded transition-colors">
               <X size={20} />
             </button>
           </div>
           
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 min-h-[300px]">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-slate-800 min-h-[300px]">
             {messages.length === 0 && (
-              <p className="text-gray-500 text-sm text-center italic mt-10">
+              <p className="text-gray-500 dark:text-slate-300 text-sm text-center italic mt-10">
                 Hãy hỏi tôi về tình hình kinh doanh, tồn kho hoặc đơn hàng trong SQL Server!
               </p>
             )}
             {messages.map((m, i) => (
               <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[85%] rounded-2xl p-3 text-sm ${m.role === 'user' ? 'bg-primary text-white rounded-tr-none' : 'bg-white border text-gray-800 rounded-tl-none shadow-sm'}`}>
+                <div className={`max-w-[85%] rounded-2xl p-3 text-sm ${m.role === 'user' ? 'bg-primary text-white rounded-tr-none' : 'bg-white dark:bg-slate-900 border text-gray-800 dark:text-slate-200 rounded-tl-none shadow-sm'}`}>
                   {m.content}
                 </div>
               </div>
             ))}
             {isLoading && (
               <div className="flex justify-start">
-                <div className="bg-white border rounded-2xl p-3 shadow-sm rounded-tl-none">
+                <div className="bg-white dark:bg-slate-900 border rounded-2xl p-3 shadow-sm rounded-tl-none">
                    <div className="bg-primary/10 rounded-full p-1 leading-none">
                     <Loader2 className="animate-spin text-primary" size={16} />
                   </div>
@@ -77,7 +77,7 @@ const AIAssistant: React.FC = () => {
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="p-4 border-t bg-white flex gap-2">
+          <div className="p-4 border-t bg-white dark:bg-slate-900 flex gap-2">
             <input
               type="text"
               value={input}
@@ -109,3 +109,5 @@ const AIAssistant: React.FC = () => {
 };
 
 export default AIAssistant;
+
+

@@ -85,8 +85,26 @@ export interface DistributorInfo {
   address: string;
 }
 
+export interface AuthUser {
+  id: string;
+  username: string;
+  email: string;
+  displayName: string;
+  createdAt: string;
+  updatedAt: string;
+  lastLoginAt?: string;
+}
+
+export interface AuthSession {
+  userId: string;
+  username: string;
+  displayName: string;
+  loggedInAt: string;
+}
+
 export interface ShopSettings {
   distributor: DistributorInfo;
+  orderFilePrefix?: string;
 }
 
 export interface ImportItem {

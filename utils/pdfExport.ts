@@ -78,7 +78,7 @@ export const exportProductsToPDF = async (products: Product[]) => {
     downloadPDF(pdf, 'san_pham.pdf');
 };
 
-export const exportOrdersToPDF = async (orders: Order[]) => {
+export const exportOrdersToPDF = async (orders: Order[], filename = 'don_hang.pdf') => {
     const { jsPDF } = getJsPDF();
     const html2canvas = getHtml2Canvas();
 
@@ -137,7 +137,7 @@ export const exportOrdersToPDF = async (orders: Order[]) => {
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
     pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight);
-    downloadPDF(pdf, 'don_hang.pdf');
+    downloadPDF(pdf, filename);
 };
 
 export const exportDebtsToPDF = async (debts: Debt[]) => {

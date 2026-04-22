@@ -6,12 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bán Hàng - Quản lý kinh doanh</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style type="text/css">
         :root {
             --primary-color: #16a34a;
             --primary-light: rgba(22, 163, 74, 0.05);
+            --app-font: "Inter", "Be Vietnam Pro", "Noto Sans", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
         }
     </style>
     <script>
@@ -20,7 +21,7 @@
             theme: {
                 extend: {
                     fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
+                        sans: ['Inter', 'Be Vietnam Pro', 'Noto Sans', 'Segoe UI', 'sans-serif'],
                     },
                     colors: {
                         primary: 'var(--primary-color)',
@@ -34,13 +35,19 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style type="text/css">
-        /* Base styles to prevent layout shift and black screen */
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: var(--app-font);
             margin: 0;
             padding: 0;
             background-color: #f8fafc;
             color: #0f172a;
+        }
+
+        input,
+        textarea,
+        select,
+        button {
+            font-family: var(--app-font);
         }
 
         #root {
@@ -49,7 +56,6 @@
             flex-direction: column;
         }
 
-        /* Custom scrollbar */
         ::-webkit-scrollbar {
             width: 6px;
             height: 6px;
@@ -68,16 +74,73 @@
             background: #94a3b8;
         }
 
-        /* Ensure links don't look like raw HTML links */
         a {
             text-decoration: none;
             color: inherit;
+        }
+
+        .dark body {
+            background-color: #020617;
+            color: #e2e8f0;
+        }
+
+        .dark .bg-white {
+            background-color: #0f172a !important;
+        }
+
+        .dark .bg-gray-50,
+        .dark .bg-slate-50 {
+            background-color: #1e293b !important;
+        }
+
+        .dark .border-gray-100,
+        .dark .border-gray-200,
+        .dark .border-slate-100,
+        .dark .border-slate-200 {
+            border-color: #334155 !important;
+        }
+
+        .dark .text-gray-900,
+        .dark .text-slate-900 {
+            color: #f8fafc !important;
+        }
+
+        .dark .text-gray-800,
+        .dark .text-slate-800 {
+            color: #e2e8f0 !important;
+        }
+
+        .dark .text-gray-700,
+        .dark .text-gray-600,
+        .dark .text-slate-700,
+        .dark .text-slate-600,
+        .dark .text-gray-500,
+        .dark .text-slate-500,
+        .dark .text-gray-400,
+        .dark .text-slate-400 {
+            color: #cbd5e1 !important;
+        }
+
+        .dark input,
+        .dark select,
+        .dark textarea {
+            background-color: #0f172a !important;
+            color: #f8fafc !important;
+            border-color: #334155 !important;
+        }
+
+        .dark table thead {
+            background-color: #1e293b !important;
+        }
+
+        .dark table tbody tr:hover {
+            background-color: #1e293b !important;
         }
     </style>
 
 </head>
 
-<body class="bg-slate-50">
+<body class="bg-slate-50 dark:bg-slate-950">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
 </body>
