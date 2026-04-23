@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Bell,
   Box,
@@ -29,9 +29,18 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isThemeOpen, setIsThemeOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const { primaryColor, setPrimaryColor, themeMode, toggleThemeMode } = useTheme();
   const { user, logout } = useAuth();
   const location = useLocation();
+
+  useEffect(() => {
+    setIsSidebarCollapsed(localStorage.getItem('layout_sidebar_collapsed') === 'true');
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('layout_sidebar_collapsed', String(isSidebarCollapsed));
+  }, [isSidebarCollapsed]);
 
   const userInitials = (user?.displayName || user?.username || 'AD')
     .split(' ')
@@ -54,6 +63,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const menuItems = [
     { label: 'Việc cần làm', path: '/', icon: <LayoutDashboard size={20} /> },
     { label: 'Đơn hàng', path: '/orders', icon: <ShoppingBag size={20} /> },
+    { label: 'Quản lý khách', path: '/customers', icon: <Users size={20} /> },
     { label: 'Sản phẩm', path: '/products', icon: <Box size={20} /> },
     { label: 'Nhập hàng', path: '/import', icon: <Truck size={20} /> },
     { label: 'Sổ nợ', path: '/debts', icon: <Users size={20} /> },
@@ -69,16 +79,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     <div className="flex h-screen w-full overflow-hidden bg-[#f8fafc] text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       <aside
         className={`
-          fixed inset-y-0 left-0 z-[70] flex w-64 shrink-0 transform flex-col border-r border-slate-200 bg-white transition-transform duration-300 ease-in-out md:relative dark:border-slate-800 dark:bg-slate-900
+          fixed inset-y-0 left-0 z-[70] flex w-64 shrink-0 transform flex-col border-r border-slate-200 bg-white transition-all duration-300 ease-in-out md:relative dark:border-slate-800 dark:bg-slate-900
           ${isMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+          ${isSidebarCollapsed ? 'md:w-24' : 'md:w-64'}
         `}
       >
         <div className="flex items-center justify-between border-b border-slate-100 p-6 dark:border-slate-800">
-          <div className="flex items-center gap-3">
+          <div className={`flex items-center gap-3 ${isSidebarCollapsed ? 'md:justify-center md:w-full' : ''}`}>
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white shadow-lg shadow-primary-light">
               <Store size={22} />
             </div>
-            <span className="text-xl font-black tracking-tight text-slate-800 dark:text-slate-100">Sổ Bán Hàng</span>
+            <span className={`text-xl font-black tracking-tight text-slate-800 dark:text-slate-100 ${isSidebarCollapsed ? 'md:hidden' : ''}`}>Sổ Bán Hàng</span>
           </div>
           <button onClick={() => setIsMenuOpen(false)} className="p-1 text-slate-400 md:hidden">
             <X size={20} />
@@ -93,31 +104,33 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 key={item.path}
                 to={item.path}
                 onClick={() => setIsMenuOpen(false)}
+                title={item.label}
                 className={`
                   group flex items-center justify-between rounded-xl px-4 py-3.5 text-sm font-bold transition-all
                   ${isActive
                     ? 'bg-primary text-white shadow-lg shadow-primary-light'
                     : 'text-slate-500 hover:bg-slate-50 hover:text-primary dark:text-slate-300 dark:hover:bg-slate-800/70'}
+                  ${isSidebarCollapsed ? 'md:justify-center md:px-0' : ''}
                 `}
               >
-                <div className="flex items-center gap-3">
+                <div className={`flex items-center gap-3 ${isSidebarCollapsed ? 'md:flex-col md:gap-1' : ''}`}>
                   <span className={isActive ? 'text-white' : 'text-slate-400 transition-colors group-hover:text-primary dark:text-slate-500'}>
                     {item.icon}
                   </span>
-                  {item.label}
+                  <span className={isSidebarCollapsed ? 'md:hidden' : ''}>{item.label}</span>
                 </div>
-                {isActive && <ChevronRight size={14} />}
+                {isActive && !isSidebarCollapsed && <ChevronRight size={14} />}
               </Link>
             );
           })}
         </nav>
 
         <div className="border-t border-slate-100 p-4 dark:border-slate-800">
-          <div className="flex items-center gap-3 rounded-2xl bg-slate-50 p-3 dark:bg-slate-800">
+          <div className={`flex items-center gap-3 rounded-2xl bg-slate-50 p-3 dark:bg-slate-800 ${isSidebarCollapsed ? 'md:flex-col md:items-center' : ''}`}>
             <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white bg-slate-200 font-bold text-slate-600 dark:border-slate-700 dark:bg-slate-700 dark:text-slate-200">
               {userInitials}
             </div>
-            <div className="min-w-0 flex-1">
+            <div className={`min-w-0 flex-1 ${isSidebarCollapsed ? 'md:hidden' : ''}`}>
               <p className="truncate text-sm font-bold text-slate-900 dark:text-slate-100">{user?.displayName || 'Tài khoản'}</p>
               <p className="truncate text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 @{user?.username || 'guest'}
@@ -143,6 +156,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 md:hidden"
               >
                 <Menu size={24} />
+              </button>
+              <button
+                onClick={() => setIsSidebarCollapsed((prev) => !prev)}
+                className="hidden rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 md:inline-flex dark:text-slate-300 dark:hover:bg-slate-800"
+                title={isSidebarCollapsed ? 'Mở rộng thanh bên' : 'Thu gọn thanh bên'}
+              >
+                <Menu size={18} />
               </button>
               <h2 className="hidden text-xs font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 sm:block">
                 {currentLabel}

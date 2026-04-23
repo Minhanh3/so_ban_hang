@@ -1,5 +1,6 @@
 import { doc, getDoc, runTransaction, setDoc } from 'firebase/firestore';
 import {
+  Customer,
   Debt,
   ImportReceipt,
   Order,
@@ -9,11 +10,13 @@ import {
   StockLog,
 } from '../types';
 import { getCurrentUserId, getScopedStorageKey, LEGACY_STORAGE_OWNER_KEY } from './auth';
+import { getDesktopDataRoot, isDesktopApp, readDesktopDataset, writeDesktopDataset } from './desktopStorage';
 import { firestoreDb, isFirebaseConfigured } from './firebase';
 
 const KEYS = {
   PRODUCTS: 'sbh_products',
   ORDERS: 'sbh_orders',
+  CUSTOMERS: 'sbh_customers',
   DEBTS: 'sbh_debts',
   IMPORTS: 'sbh_imports',
   STOCK_LOGS: 'sbh_stock_logs',
@@ -111,8 +114,12 @@ function genId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
+function canUseDesktopStorage(userId?: string | null): userId is string {
+  return Boolean(isDesktopApp() && userId);
+}
+
 function canUseFirebase(userId?: string | null): userId is string {
-  return Boolean(isFirebaseConfigured && firestoreDb && userId);
+  return Boolean(!isDesktopApp() && isFirebaseConfigured && firestoreDb && userId);
 }
 
 function getDatasetRef(baseKey: string, userId: string) {
@@ -144,6 +151,25 @@ function readObjectValue<T extends object>(
 
 async function loadArray<T>(key: StorageKey): Promise<T[]> {
   const userId = getCurrentUserId();
+  if (canUseDesktopStorage(userId)) {
+    try {
+      const value = await readDesktopDataset<T[]>(userId, key);
+      if (Array.isArray(value)) {
+        saveLocalArray(key, value);
+        return value;
+      }
+
+      const localValue = loadLocalArray<T>(key);
+      if (localValue.length > 0) {
+        await writeDesktopDataset(userId, key, localValue);
+      }
+      return localValue;
+    } catch (error) {
+      console.error(`Failed to load ${key} from desktop storage:`, error);
+      return loadLocalArray<T>(key);
+    }
+  }
+
   if (!canUseFirebase(userId)) {
     return loadLocalArray<T>(key);
   }
@@ -172,6 +198,15 @@ async function saveArray<T>(key: StorageKey, data: T[]): Promise<void> {
   saveLocalArray(key, data);
 
   const userId = getCurrentUserId();
+  if (canUseDesktopStorage(userId)) {
+    try {
+      await writeDesktopDataset(userId, key, data);
+    } catch (error) {
+      console.error(`Failed to save ${key} to desktop storage:`, error);
+    }
+    return;
+  }
+
   if (!canUseFirebase(userId)) {
     return;
   }
@@ -185,6 +220,26 @@ async function saveArray<T>(key: StorageKey, data: T[]): Promise<void> {
 
 async function loadObject<T extends object>(key: StorageKey, fallback: T): Promise<T> {
   const userId = getCurrentUserId();
+  if (canUseDesktopStorage(userId)) {
+    try {
+      const value = await readDesktopDataset<T>(userId, key);
+      if (value && typeof value === 'object' && !Array.isArray(value)) {
+        const mergedValue = { ...fallback, ...(value as Partial<T>) };
+        saveLocalObject(key, mergedValue);
+        return mergedValue;
+      }
+
+      const localValue = loadLocalObject<T>(key, fallback);
+      if (hasStoredValue(resolveStorageKey(key))) {
+        await writeDesktopDataset(userId, key, localValue);
+      }
+      return localValue;
+    } catch (error) {
+      console.error(`Failed to load ${key} from desktop storage:`, error);
+      return loadLocalObject<T>(key, fallback);
+    }
+  }
+
   if (!canUseFirebase(userId)) {
     return loadLocalObject<T>(key, fallback);
   }
@@ -213,6 +268,15 @@ async function saveObject<T extends object>(key: StorageKey, data: T): Promise<v
   saveLocalObject(key, data);
 
   const userId = getCurrentUserId();
+  if (canUseDesktopStorage(userId)) {
+    try {
+      await writeDesktopDataset(userId, key, data);
+    } catch (error) {
+      console.error(`Failed to save ${key} to desktop storage:`, error);
+    }
+    return;
+  }
+
   if (!canUseFirebase(userId)) {
     return;
   }
@@ -241,8 +305,8 @@ function prependStockLogs(
   return nextLogs;
 }
 
-function applyLocalProductUpdate(product: Product): void {
-  const list = loadLocalArray<Product>(KEYS.PRODUCTS);
+async function applyProductUpdate(product: Product): Promise<void> {
+  const list = await loadArray<Product>(KEYS.PRODUCTS);
   const idx = list.findIndex((item) => item.id === product.id);
   if (idx === -1) {
     return;
@@ -250,7 +314,7 @@ function applyLocalProductUpdate(product: Product): void {
 
   const oldProduct = list[idx];
   list[idx] = product;
-  saveLocalArray(KEYS.PRODUCTS, list);
+  await saveArray(KEYS.PRODUCTS, list);
 
   const logEntries: Omit<StockLog, 'id' | 'date'>[] = [];
   if (product.variants.length === 0) {
@@ -286,13 +350,16 @@ function applyLocalProductUpdate(product: Product): void {
   }
 
   if (logEntries.length > 0) {
-    const logs = loadLocalArray<StockLog>(KEYS.STOCK_LOGS);
-    saveLocalArray(KEYS.STOCK_LOGS, prependStockLogs(logs, logEntries));
+    const logs = await loadArray<StockLog>(KEYS.STOCK_LOGS);
+    await saveArray(KEYS.STOCK_LOGS, prependStockLogs(logs, logEntries));
   }
 }
 
 export const db = {
   async connect(): Promise<void> {
+    if (isDesktopApp()) {
+      await getDesktopDataRoot();
+    }
     return Promise.resolve();
   },
 
@@ -349,7 +416,7 @@ export const db = {
   async updateProduct(product: Product): Promise<void> {
     const userId = getCurrentUserId();
     if (!canUseFirebase(userId)) {
-      applyLocalProductUpdate(product);
+      await applyProductUpdate(product);
       return;
     }
 
@@ -417,7 +484,7 @@ export const db = {
       });
     } catch (error) {
       console.error('Failed to update product in Firebase:', error);
-      applyLocalProductUpdate(product);
+      await applyProductUpdate(product);
       return;
     }
 
@@ -441,6 +508,61 @@ export const db = {
     return loadArray<Order>(KEYS.ORDERS);
   },
 
+  async getCustomers(): Promise<Customer[]> {
+    const list = await loadArray<Customer>(KEYS.CUSTOMERS);
+    return [...list].sort((a, b) => {
+      const aTime = a.lastOrderAt || a.updatedAt || a.createdAt || '';
+      const bTime = b.lastOrderAt || b.updatedAt || b.createdAt || '';
+      return bTime.localeCompare(aTime);
+    });
+  },
+
+  async upsertCustomer(customer: Partial<Customer> & Pick<Customer, 'name' | 'phone'>): Promise<Customer> {
+    const list = await loadArray<Customer>(KEYS.CUSTOMERS);
+    const normalizedName = customer.name.trim();
+    const normalizedPhone = customer.phone.trim();
+    const now = new Date().toISOString();
+
+    const existingIndex = customer.id
+      ? list.findIndex((entry) => entry.id === customer.id)
+      : list.findIndex((entry) => entry.phone === normalizedPhone);
+
+    const nextCustomer: Customer = existingIndex >= 0
+      ? {
+          ...list[existingIndex],
+          ...customer,
+          name: normalizedName,
+          phone: normalizedPhone,
+          note: customer.note?.trim() ?? list[existingIndex].note ?? '',
+          updatedAt: now,
+          lastOrderAt: customer.lastOrderAt || list[existingIndex].lastOrderAt,
+        }
+      : {
+          id: customer.id || genId('cus'),
+          name: normalizedName,
+          phone: normalizedPhone,
+          note: customer.note?.trim() || '',
+          createdAt: now,
+          updatedAt: now,
+          lastOrderAt: customer.lastOrderAt,
+        };
+
+    const nextList = existingIndex >= 0
+      ? list.map((entry, index) => index === existingIndex ? nextCustomer : entry)
+      : [nextCustomer, ...list];
+
+    await saveArray(KEYS.CUSTOMERS, nextList);
+    return nextCustomer;
+  },
+
+  async deleteCustomer(customerId: string): Promise<void> {
+    const list = await loadArray<Customer>(KEYS.CUSTOMERS);
+    await saveArray(
+      KEYS.CUSTOMERS,
+      list.filter((customer) => customer.id !== customerId),
+    );
+  },
+
   async createOrder(order: Order): Promise<{ success: boolean; message?: string }> {
     const userId = getCurrentUserId();
     const newOrder: Order = {
@@ -451,7 +573,7 @@ export const db = {
     };
 
     if (!canUseFirebase(userId)) {
-      const products = loadLocalArray<Product>(KEYS.PRODUCTS);
+      const products = await loadArray<Product>(KEYS.PRODUCTS);
 
       for (const item of order.items) {
         const product = products.find((entry) => entry.id === item.productId);
@@ -474,8 +596,8 @@ export const db = {
         }
       }
 
-      const orders = loadLocalArray<Order>(KEYS.ORDERS);
-      const logs = loadLocalArray<StockLog>(KEYS.STOCK_LOGS);
+      const orders = await loadArray<Order>(KEYS.ORDERS);
+      const logs = await loadArray<StockLog>(KEYS.STOCK_LOGS);
       const logEntries: Omit<StockLog, 'id' | 'date'>[] = [];
 
       const updatedProducts = products.map((product) => {
@@ -524,9 +646,9 @@ export const db = {
         return { ...product, variants: updatedVariants, totalStock: newTotalStock };
       });
 
-      saveLocalArray(KEYS.ORDERS, [newOrder, ...orders]);
-      saveLocalArray(KEYS.PRODUCTS, updatedProducts);
-      saveLocalArray(KEYS.STOCK_LOGS, prependStockLogs(logs, logEntries, newOrder.date));
+      await saveArray(KEYS.ORDERS, [newOrder, ...orders]);
+      await saveArray(KEYS.PRODUCTS, updatedProducts);
+      await saveArray(KEYS.STOCK_LOGS, prependStockLogs(logs, logEntries, newOrder.date));
       return { success: true };
     }
 
@@ -700,9 +822,9 @@ export const db = {
     };
 
     if (!canUseFirebase(userId)) {
-      const receipts = loadLocalArray<ImportReceipt>(KEYS.IMPORTS);
-      const products = loadLocalArray<Product>(KEYS.PRODUCTS);
-      const logs = loadLocalArray<StockLog>(KEYS.STOCK_LOGS);
+      const receipts = await loadArray<ImportReceipt>(KEYS.IMPORTS);
+      const products = await loadArray<Product>(KEYS.PRODUCTS);
+      const logs = await loadArray<StockLog>(KEYS.STOCK_LOGS);
       const logEntries: Omit<StockLog, 'id' | 'date'>[] = [];
 
       const updatedProducts = products.map((product) => {
@@ -764,9 +886,9 @@ export const db = {
         };
       });
 
-      saveLocalArray(KEYS.IMPORTS, [newReceipt, ...receipts]);
-      saveLocalArray(KEYS.PRODUCTS, updatedProducts);
-      saveLocalArray(KEYS.STOCK_LOGS, prependStockLogs(logs, logEntries, newReceipt.date));
+      await saveArray(KEYS.IMPORTS, [newReceipt, ...receipts]);
+      await saveArray(KEYS.PRODUCTS, updatedProducts);
+      await saveArray(KEYS.STOCK_LOGS, prependStockLogs(logs, logEntries, newReceipt.date));
       return { success: true };
     }
 

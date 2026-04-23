@@ -12,3 +12,12 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+interface Window {
+  desktopStorage?: {
+    isDesktop: boolean;
+    readDataset: (userId: string, key: string) => Promise<unknown | null>;
+    writeDataset: (userId: string, key: string, value: unknown) => Promise<string>;
+    getRootPath: () => Promise<string>;
+  };
+}

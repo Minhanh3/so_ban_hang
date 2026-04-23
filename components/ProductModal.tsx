@@ -1,11 +1,36 @@
-
-import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2, Camera, ChevronDown, HelpCircle, Image as ImageIcon } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { X, Plus, Trash2, ChevronDown, Image as ImageIcon } from 'lucide-react';
 import { Product, ProductVariant } from '../types';
 
-// Moved sub-components outside to ensure TypeScript correctly detects children props
-// @fix: Made children optional to satisfy compiler when used with content in some environments
-const Label = ({ children, required }: { children?: React.ReactNode, required?: boolean }) => (
+type ProductVariantForm = Omit<ProductVariant, 'price' | 'stock'> & {
+  price: string;
+  stock: string;
+};
+
+const toInputValue = (value?: number): string => {
+  if (!value) {
+    return '';
+  }
+  return String(value);
+};
+
+const parseNonNegativeInteger = (value: string): number => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return 0;
+  }
+  return Math.max(0, Math.floor(parsed));
+};
+
+const parseNonNegativeNumber = (value: string): number => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return 0;
+  }
+  return Math.max(0, parsed);
+};
+
+const Label = ({ children, required }: { children?: React.ReactNode; required?: boolean }) => (
   <label className="block text-xs font-medium text-gray-400 mb-1.5">
     {children} {required && <span className="text-red-500">*</span>}
   </label>
@@ -14,16 +39,25 @@ const Label = ({ children, required }: { children?: React.ReactNode, required?: 
 const Input = (props: React.InputHTMLAttributes<HTMLInputElement>) => (
   <input
     {...props}
-    className={`w-full bg-[#262626] border border-[#333] rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:border-primary transition-all ${props.className}`}
+    className={`w-full bg-[#262626] border border-[#333] rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:border-primary transition-all ${props.className || ''}`}
   />
 );
 
-// @fix: Made children optional to satisfy compiler when used with content in some environments
 const SectionTitle = ({ children }: { children?: React.ReactNode }) => (
   <h3 className="text-sm font-bold text-gray-100 mb-4">{children}</h3>
 );
 
-const Toggle = ({ active, onChange, label, subLabel }: { active: boolean, onChange: (v: boolean) => void, label: string, subLabel?: string }) => (
+const Toggle = ({
+  active,
+  onChange,
+  label,
+  subLabel,
+}: {
+  active: boolean;
+  onChange: (value: boolean) => void;
+  label: string;
+  subLabel?: string;
+}) => (
   <div className="flex items-center justify-between py-3">
     <div className="flex-1 pr-4">
       <p className="text-sm text-gray-200">{label}</p>
@@ -47,23 +81,19 @@ interface ProductModalProps {
 }
 
 const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, initialProduct }) => {
-  // General Info
   const [name, setName] = useState('');
   const [unit, setUnit] = useState('');
   const [category, setCategory] = useState('');
   const [sku, setSku] = useState('');
   const [barcode, setBarcode] = useState('');
-  
-  // Pricing & Stock
-  const [basePrice, setBasePrice] = useState(0);
-  const [costPrice, setCostPrice] = useState(0);
-  const [promoPrice, setPromoPrice] = useState(0);
-  const [totalStock, setTotalStock] = useState(0);
 
-  // Variants
-  const [variants, setVariants] = useState<ProductVariant[]>([]);
+  const [basePriceInput, setBasePriceInput] = useState('');
+  const [costPriceInput, setCostPriceInput] = useState('');
+  const [promoPriceInput, setPromoPriceInput] = useState('');
+  const [totalStockInput, setTotalStockInput] = useState('');
 
-  // Status & Flags
+  const [variants, setVariants] = useState<ProductVariantForm[]>([]);
+
   const [inStock, setInStock] = useState(true);
   const [trackStock, setTrackStock] = useState(true);
   const [applyMaterials, setApplyMaterials] = useState(false);
@@ -77,189 +107,231 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, in
       setCategory(initialProduct.category || '');
       setSku(initialProduct.sku || '');
       setBarcode(initialProduct.barcode || '');
-      setBasePrice(initialProduct.basePrice);
-      setCostPrice(initialProduct.costPrice || 0);
-      setPromoPrice(initialProduct.promoPrice || 0);
-      setTotalStock(initialProduct.totalStock || 0);
-      setVariants(initialProduct.variants);
+      setBasePriceInput(toInputValue(initialProduct.basePrice));
+      setCostPriceInput(toInputValue(initialProduct.costPrice));
+      setPromoPriceInput(toInputValue(initialProduct.promoPrice));
+      setTotalStockInput(toInputValue(initialProduct.totalStock));
+      setVariants(
+        initialProduct.variants.map((variant) => ({
+          ...variant,
+          price: toInputValue(variant.price),
+          stock: toInputValue(variant.stock),
+        })),
+      );
       setInStock(initialProduct.inStock);
       setTrackStock(initialProduct.trackStock);
       setApplyMaterials(initialProduct.applyMaterials);
       setAllowWholesaleView(initialProduct.allowWholesaleView);
       setShowOnWebsite(initialProduct.showOnWebsite);
-    } else {
-      setName('');
-      setUnit('');
-      setCategory('');
-      setSku('');
-      setBarcode('');
-      setBasePrice(0);
-      setCostPrice(0);
-      setPromoPrice(0);
-      setTotalStock(0);
-      setVariants([]);
-      setInStock(true);
-      setTrackStock(true);
-      setApplyMaterials(false);
-      setAllowWholesaleView(false);
-      setShowOnWebsite(true);
+      return;
     }
+
+    setName('');
+    setUnit('');
+    setCategory('');
+    setSku('');
+    setBarcode('');
+    setBasePriceInput('');
+    setCostPriceInput('');
+    setPromoPriceInput('');
+    setTotalStockInput('');
+    setVariants([]);
+    setInStock(true);
+    setTrackStock(true);
+    setApplyMaterials(false);
+    setAllowWholesaleView(false);
+    setShowOnWebsite(true);
   }, [initialProduct, isOpen]);
 
   const addVariant = () => {
-    setVariants([...variants, { id: 'v-' + Date.now(), name: '', price: basePrice, stock: 0 }]);
+    setVariants((prev) => [
+      ...prev,
+      {
+        id: `v-${Date.now()}`,
+        name: '',
+        price: basePriceInput || '0',
+        stock: '0',
+      },
+    ]);
   };
 
   const removeVariant = (id: string) => {
-    setVariants(variants.filter(v => v.id !== id));
+    setVariants((prev) => prev.filter((variant) => variant.id !== id));
   };
 
-  const updateVariant = (id: string, field: keyof ProductVariant, value: string | number) => {
-    setVariants(variants.map(v => v.id === id ? { ...v, [field]: value } : v));
+  const updateVariant = (id: string, field: keyof ProductVariantForm, value: string) => {
+    setVariants((prev) =>
+      prev.map((variant) => (variant.id === id ? { ...variant, [field]: value } : variant)),
+    );
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const finalTotalStock = variants.length > 0 ? variants.reduce((sum, v) => sum + Number(v.stock), 0) : totalStock;
+
+    const normalizedVariants: ProductVariant[] = variants.map((variant) => ({
+      ...variant,
+      name: variant.name.trim(),
+      price: parseNonNegativeNumber(variant.price),
+      stock: parseNonNegativeInteger(variant.stock),
+    }));
+
+    const finalTotalStock =
+      normalizedVariants.length > 0
+        ? normalizedVariants.reduce((sum, variant) => sum + variant.stock, 0)
+        : parseNonNegativeInteger(totalStockInput);
+
     onSave({
-      id: initialProduct?.id || 'prod-' + Date.now(),
-      name,
-      unit,
-      category,
-      sku,
-      barcode,
-      basePrice,
-      costPrice,
-      promoPrice,
+      id: initialProduct?.id || `prod-${Date.now()}`,
+      name: name.trim(),
+      unit: unit.trim(),
+      category: category.trim(),
+      sku: sku.trim(),
+      barcode: barcode.trim(),
+      basePrice: parseNonNegativeNumber(basePriceInput),
+      costPrice: parseNonNegativeNumber(costPriceInput),
+      promoPrice: parseNonNegativeNumber(promoPriceInput),
       totalStock: finalTotalStock,
-      variants,
+      variants: normalizedVariants,
       inStock,
       trackStock,
       applyMaterials,
       allowWholesaleView,
       showOnWebsite,
-      images: []
+      images: initialProduct?.images || [],
     });
+
     onClose();
   };
 
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
+
+  const totalVariantStock = variants.reduce(
+    (sum, variant) => sum + parseNonNegativeInteger(variant.stock),
+    0,
+  );
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm">
       <div className="bg-[#121212] w-full h-full md:max-w-[1200px] md:h-[90vh] md:rounded-lg overflow-hidden flex flex-col shadow-2xl">
-        {/* Header */}
         <div className="bg-primary px-6 py-3 flex justify-between items-center text-white">
-          <h2 className="text-base font-bold">{initialProduct ? 'Chỉnh sửa sản phẩm' : 'Tạo sản phẩm mới'}</h2>
+          <h2 className="text-base font-bold">{initialProduct ? 'Chá»‰nh sá»­a sáº£n pháº©m' : 'Táº¡o sáº£n pháº©m má»›i'}</h2>
           <button onClick={onClose} className="p-1 hover:bg-white/20 rounded-full transition-colors">
             <X size={20} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto flex flex-col md:flex-row bg-[#1a1a1a]">
-          {/* Left Column */}
+        <form id="product-modal-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto flex flex-col md:flex-row bg-[#1a1a1a]">
           <div className="flex-1 p-6 space-y-8 border-r border-[#262626]">
-            
-            {/* Thông tin chung */}
             <section>
-              <SectionTitle>Thông tin chung</SectionTitle>
+              <SectionTitle>ThÃ´ng tin chung</SectionTitle>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-1">
-                  <Label required>Tên sản phẩm</Label>
-                  <Input 
-                    value={name} 
-                    onChange={e => setName(e.target.value)} 
-                    placeholder="Tên sản phẩm"
-                    required 
-                  />
+                  <Label required>TÃªn sáº£n pháº©m</Label>
+                  <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="TÃªn sáº£n pháº©m" required />
                 </div>
                 <div>
-                  <Label>Đơn vị</Label>
-                  <Input value={unit} onChange={e => setUnit(e.target.value)} placeholder="Ví dụ: Lon" />
+                  <Label>ÄÆ¡n vá»‹</Label>
+                  <Input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="VÃ­ dá»¥: Lon" />
                 </div>
                 <div className="md:col-span-1">
-                  <Label>Danh mục</Label>
+                  <Label>Danh má»¥c</Label>
                   <div className="relative">
-                    <select 
-                      value={category} 
-                      onChange={e => setCategory(e.target.value)}
+                    <select
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
                       className="w-full bg-[#262626] border border-[#333] rounded-lg px-3 py-2 text-sm text-gray-100 outline-none focus:border-primary appearance-none"
                     >
-                      <option value="">Chọn 1 hoặc nhiều</option>
-                      <option value="Đồ uống">Đồ uống</option>
-                      <option value="Thức ăn">Thức ăn</option>
+                      <option value="">Chá»n 1 hoáº·c nhiá»u</option>
+                      <option value="Äá»“ uá»‘ng">Äá»“ uá»‘ng</option>
+                      <option value="Thá»©c Äƒn">Thá»©c Äƒn</option>
                     </select>
                     <ChevronDown className="absolute right-3 top-2.5 text-gray-500 pointer-events-none" size={16} />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4 md:col-span-1">
-                   <div>
-                    <Label>Mã sản phẩm (SKU)</Label>
-                    <Input value={sku} onChange={e => setSku(e.target.value)} />
-                   </div>
-                   <div>
-                    <Label>Mã vạch sản xuất</Label>
-                    <Input value={barcode} onChange={e => setBarcode(e.target.value)} />
-                   </div>
+                  <div>
+                    <Label>MÃ£ sáº£n pháº©m (SKU)</Label>
+                    <Input value={sku} onChange={(e) => setSku(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label>MÃ£ váº¡ch sáº£n xuáº¥t</Label>
+                    <Input value={barcode} onChange={(e) => setBarcode(e.target.value)} />
+                  </div>
                 </div>
               </div>
             </section>
 
-            {/* Giá sản phẩm & Tồn kho */}
             <section>
-              <SectionTitle>Giá sản phẩm & Tồn kho</SectionTitle>
+              <SectionTitle>GiÃ¡ sáº£n pháº©m & Tá»“n kho</SectionTitle>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
-                  <Label>Giá bán</Label>
-                  <Input type="number" value={basePrice || ''} onChange={e => setBasePrice(Number(e.target.value))} placeholder="0" />
+                  <Label>GiÃ¡ bÃ¡n</Label>
+                  <Input type="number" value={basePriceInput} onChange={(e) => setBasePriceInput(e.target.value)} placeholder="0" />
                 </div>
                 <div>
-                  <Label>Giá vốn (Giá nhập)</Label>
-                  <Input type="number" value={costPrice || ''} onChange={e => setCostPrice(Number(e.target.value))} placeholder="0" />
+                  <Label>GiÃ¡ vá»‘n (GiÃ¡ nháº­p)</Label>
+                  <Input type="number" value={costPriceInput} onChange={(e) => setCostPriceInput(e.target.value)} placeholder="0" />
                 </div>
                 <div>
-                  <Label>Giá khuyến mãi</Label>
-                  <Input type="number" value={promoPrice || ''} onChange={e => setPromoPrice(Number(e.target.value))} placeholder="0" />
+                  <Label>GiÃ¡ khuyáº¿n mÃ£i</Label>
+                  <Input type="number" value={promoPriceInput} onChange={(e) => setPromoPriceInput(e.target.value)} placeholder="0" />
                 </div>
                 <div>
-                  <Label>Tồn kho</Label>
-                  <Input 
-                    type="number" 
-                    value={variants.length > 0 ? variants.reduce((sum, v) => sum + Number(v.stock), 0) : (totalStock || '')} 
-                    onChange={e => setTotalStock(Number(e.target.value))} 
-                    placeholder="0" 
+                  <Label>Tá»“n kho</Label>
+                  <Input
+                    type="number"
+                    value={variants.length > 0 ? String(totalVariantStock) : totalStockInput}
+                    onChange={(e) => setTotalStockInput(e.target.value)}
+                    placeholder="0"
                     disabled={variants.length > 0}
                     className={variants.length > 0 ? 'opacity-50 cursor-not-allowed' : ''}
                   />
-                  {variants.length > 0 && <p className="text-[10px] text-gray-500 mt-1">Tự động tính từ phân loại</p>}
+                  {variants.length > 0 && <p className="text-[10px] text-gray-500 mt-1">Tá»± Ä‘á»™ng tÃ­nh tá»« phÃ¢n loáº¡i</p>}
                 </div>
               </div>
               <button type="button" className="mt-4 text-[#3b82f6] text-xs font-bold flex items-center gap-1.5 hover:underline">
-                <Plus size={14} strokeWidth={3} /> Thêm giá sỉ
+                <Plus size={14} strokeWidth={3} /> ThÃªm giÃ¡ sá»‰
               </button>
             </section>
 
-            {/* Đơn vị quy đổi */}
             <section>
-              <SectionTitle>Đơn vị quy đổi</SectionTitle>
-              <p className="text-xs text-gray-500 mb-3 italic">Chưa có đơn vị gốc</p>
+              <SectionTitle>ÄÆ¡n vá»‹ quy Ä‘á»•i</SectionTitle>
+              <p className="text-xs text-gray-500 mb-3 italic">ChÆ°a cÃ³ Ä‘Æ¡n vá»‹ gá»‘c</p>
               <button type="button" className="text-[#3b82f6] text-xs font-bold flex items-center gap-1.5 hover:underline">
-                <Plus size={14} strokeWidth={3} /> Thêm đơn vị quy đổi
+                <Plus size={14} strokeWidth={3} /> ThÃªm Ä‘Æ¡n vá»‹ quy Ä‘á»•i
               </button>
             </section>
 
-            {/* Phân loại sản phẩm */}
             <section>
-              <SectionTitle>Phân loại sản phẩm</SectionTitle>
-              <p className="text-xs text-gray-500 mb-3">Tạo phân loại nếu sản phẩm có nhiều thuộc tính khác nhau như màu sắc, kích thước...</p>
-              
+              <SectionTitle>PhÃ¢n loáº¡i sáº£n pháº©m</SectionTitle>
+              <p className="text-xs text-gray-500 mb-3">Táº¡o phÃ¢n loáº¡i náº¿u sáº£n pháº©m cÃ³ nhiá»u thuá»™c tÃ­nh khÃ¡c nhau nhÆ° mÃ u sáº¯c, kÃ­ch thÆ°á»›c...</p>
+
               <div className="space-y-3">
-                {variants.map((v) => (
-                  <div key={v.id} className="flex gap-2 items-center bg-[#262626] p-3 rounded-lg border border-[#333]">
-                    <Input className="flex-1" value={v.name} onChange={e => updateVariant(v.id, 'name', e.target.value)} placeholder="Tên phân loại" />
-                    <Input className="w-24" type="number" value={v.stock} onChange={e => updateVariant(v.id, 'stock', Number(e.target.value))} placeholder="Tồn" />
-                    <Input className="w-32" type="number" value={v.price} onChange={e => updateVariant(v.id, 'price', Number(e.target.value))} placeholder="Giá" />
-                    <button type="button" onClick={() => removeVariant(v.id)} className="text-red-500 p-2 hover:bg-red-500/10 rounded">
+                {variants.map((variant) => (
+                  <div key={variant.id} className="flex gap-2 items-center bg-[#262626] p-3 rounded-lg border border-[#333]">
+                    <Input
+                      className="flex-1"
+                      value={variant.name}
+                      onChange={(e) => updateVariant(variant.id, 'name', e.target.value)}
+                      placeholder="TÃªn phÃ¢n loáº¡i"
+                    />
+                    <Input
+                      className="w-24"
+                      type="number"
+                      value={variant.stock}
+                      onChange={(e) => updateVariant(variant.id, 'stock', e.target.value)}
+                      placeholder="Tá»“n"
+                    />
+                    <Input
+                      className="w-32"
+                      type="number"
+                      value={variant.price}
+                      onChange={(e) => updateVariant(variant.id, 'price', e.target.value)}
+                      placeholder="GiÃ¡"
+                    />
+                    <button type="button" onClick={() => removeVariant(variant.id)} className="text-red-500 p-2 hover:bg-red-500/10 rounded">
                       <Trash2 size={16} />
                     </button>
                   </div>
@@ -267,97 +339,80 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, in
               </div>
 
               <button type="button" onClick={addVariant} className="mt-4 text-[#3b82f6] text-xs font-bold flex items-center gap-1.5 hover:underline">
-                <Plus size={14} strokeWidth={3} /> Thêm phân loại
+                <Plus size={14} strokeWidth={3} /> ThÃªm phÃ¢n loáº¡i
               </button>
             </section>
 
-            {/* Thông tin thêm */}
             <section className="border-t border-[#262626] pt-6">
-              <SectionTitle>Thông tin thêm</SectionTitle>
-              <div className="h-10"></div>
+              <SectionTitle>ThÃ´ng tin thÃªm</SectionTitle>
+              <div className="h-10" />
             </section>
           </div>
 
-          {/* Right Column */}
           <div className="w-full md:w-[380px] p-6 bg-[#1a1a1a] space-y-6">
-            
-            {/* Ảnh sản phẩm */}
             <section>
               <div className="flex justify-between mb-4">
-                 <SectionTitle>Ảnh sản phẩm (0/10)</SectionTitle>
+                <SectionTitle>áº¢nh sáº£n pháº©m (0/10)</SectionTitle>
               </div>
               <div className="aspect-square bg-[#262626] border-2 border-dashed border-[#333] rounded-xl flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:border-primary/50 hover:bg-[#2a2a2a] transition-all group">
-                 <div className="w-16 h-16 bg-[#333] rounded-full flex items-center justify-center mb-4 group-hover:bg-[#3b3b3b]">
-                    <ImageIcon size={32} />
-                    <div className="absolute translate-x-4 translate-y-4 bg-primary text-white rounded-full p-1 border-2 border-[#262626]">
-                      <Plus size={14} />
-                    </div>
-                 </div>
-                 <p className="text-xs text-center px-4 leading-relaxed">Chọn/kéo thả ảnh vào đây (File PNG, JPG, cỡ tối thiểu 500×500)</p>
+                <div className="w-16 h-16 bg-[#333] rounded-full flex items-center justify-center mb-4 group-hover:bg-[#3b3b3b]">
+                  <ImageIcon size={32} />
+                  <div className="absolute translate-x-4 translate-y-4 bg-primary text-white rounded-full p-1 border-2 border-[#262626]">
+                    <Plus size={14} />
+                  </div>
+                </div>
+                <p className="text-xs text-center px-4 leading-relaxed">Chá»n/kÃ©o tháº£ áº£nh vÃ o Ä‘Ã¢y (File PNG, JPG, cá»¡ tá»‘i thiá»ƒu 500Ã—500)</p>
               </div>
             </section>
 
-            {/* Tình trạng & Toggles */}
             <section className="space-y-4 divide-y divide-[#262626]">
               <div className="flex items-center justify-between py-2">
-                <p className="text-sm text-gray-200">Tình trạng</p>
+                <p className="text-sm text-gray-200">TÃ¬nh tráº¡ng</p>
                 <div className="flex bg-[#262626] rounded-lg p-1 border border-[#333]">
-                   <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={() => setInStock(true)}
                     className={`px-3 py-1 text-[11px] font-bold rounded ${inStock ? 'bg-primary-light text-primary' : 'text-gray-500'}`}
-                   >
-                     Còn hàng
-                   </button>
-                   <button 
-                    type="button" 
+                  >
+                    CÃ²n hÃ ng
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setInStock(false)}
                     className={`px-3 py-1 text-[11px] font-bold rounded ${!inStock ? 'bg-red-600/20 text-red-500' : 'text-gray-500'}`}
-                   >
-                     Hết hàng
-                   </button>
+                  >
+                    Háº¿t hÃ ng
+                  </button>
                 </div>
               </div>
 
-              <Toggle 
-                label="Theo dõi số lượng tồn kho" 
-                active={trackStock} 
-                onChange={setTrackStock} 
+              <Toggle label="Theo dÃµi sá»‘ lÆ°á»£ng tá»“n kho" active={trackStock} onChange={setTrackStock} />
+              <Toggle label="Ãp dá»¥ng nguyÃªn váº­t liá»‡u" active={applyMaterials} onChange={setApplyMaterials} />
+              <Toggle
+                label="Cho phÃ©p khÃ¡ch xem giÃ¡ sá»‰"
+                subLabel="Chá»‰ hiá»ƒn thá»‹ giÃ¡ sá»‰ trong Chá»£ Sá»•; má»¥c Há»i giÃ¡"
+                active={allowWholesaleView}
+                onChange={setAllowWholesaleView}
               />
-              <Toggle 
-                label="Áp dụng nguyên vật liệu" 
-                active={applyMaterials} 
-                onChange={setApplyMaterials} 
-              />
-              <Toggle 
-                label="Cho phép khách xem giá sỉ" 
-                subLabel="Chỉ hiển thị giá sỉ trong Chợ Sổ; mục Hỏi giá"
-                active={allowWholesaleView} 
-                onChange={setAllowWholesaleView} 
-              />
-              <Toggle 
-                label="Hiển thị sản phẩm trên Website" 
-                active={showOnWebsite} 
-                onChange={setShowOnWebsite} 
-              />
+              <Toggle label="Hiá»ƒn thá»‹ sáº£n pháº©m trÃªn Website" active={showOnWebsite} onChange={setShowOnWebsite} />
             </section>
           </div>
         </form>
 
-        {/* Footer */}
         <div className="p-4 bg-[#1a1a1a] border-t border-[#262626] flex justify-end gap-3">
-          <button 
-            type="button" 
+          <button
+            type="button"
             onClick={onClose}
             className="px-6 py-2 bg-[#262626] text-gray-300 rounded-lg text-sm font-bold border border-[#333] hover:bg-[#333]"
           >
-            Hủy
+            Há»§y
           </button>
-          <button 
-            onClick={handleSubmit}
+          <button
+            type="submit"
+            form="product-modal-form"
             className="px-8 py-2 bg-primary text-white rounded-lg text-sm font-bold hover:opacity-90 shadow-lg shadow-primary-light active:scale-95 transition-all"
           >
-            Xác nhận
+            XÃ¡c nháº­n
           </button>
         </div>
       </div>

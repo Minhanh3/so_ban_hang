@@ -23,6 +23,32 @@ function genId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
+function parsePositiveInteger(value: string): number | null {
+  if (value.trim() === '') {
+    return null;
+  }
+
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+
+  return Math.max(1, Math.floor(parsed));
+}
+
+function parseNonNegativeNumber(value: string): number | null {
+  if (value.trim() === '') {
+    return null;
+  }
+
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+
+  return Math.max(0, parsed);
+}
+
 // â”€â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const Badge = ({ children, color = 'slate' }: { children: React.ReactNode; color?: string }) => {
   const colors: Record<string, string> = {
@@ -48,6 +74,16 @@ interface PickerRowProps {
 const ProductPickerRow: React.FC<PickerRowProps> = ({ products, item, onUpdate, onRemove }) => {
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(!item.productId);
+  const [quantityInput, setQuantityInput] = useState(item.quantity > 0 ? String(item.quantity) : '');
+  const [costPriceInput, setCostPriceInput] = useState(item.costPrice > 0 ? String(item.costPrice) : '');
+
+  useEffect(() => {
+    setQuantityInput(item.quantity > 0 ? String(item.quantity) : '');
+  }, [item.quantity]);
+
+  useEffect(() => {
+    setCostPriceInput(item.costPrice > 0 ? String(item.costPrice) : '');
+  }, [item.costPrice]);
 
   const filtered = products.filter(p =>
     p.name.toLowerCase().includes(search.toLowerCase())
@@ -149,8 +185,23 @@ const ProductPickerRow: React.FC<PickerRowProps> = ({ products, item, onUpdate, 
           <input
             type="number"
             min={1}
-            value={item.quantity || ''}
-            onChange={e => onUpdate({ ...item, quantity: Math.max(1, Number(e.target.value)) })}
+            value={quantityInput}
+            onChange={e => {
+              const nextValue = e.target.value;
+              setQuantityInput(nextValue);
+
+              const parsed = parsePositiveInteger(nextValue);
+              if (parsed !== null) {
+                onUpdate({ ...item, quantity: parsed });
+              }
+            }}
+            onBlur={() => {
+              const normalized = parsePositiveInteger(quantityInput) ?? Math.max(1, item.quantity || 1);
+              setQuantityInput(String(normalized));
+              if (normalized !== item.quantity) {
+                onUpdate({ ...item, quantity: normalized });
+              }
+            }}
             placeholder="0"
             className="mt-1 w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-800 dark:text-slate-200 outline-none focus:border-primary text-center"
           />
@@ -160,8 +211,23 @@ const ProductPickerRow: React.FC<PickerRowProps> = ({ products, item, onUpdate, 
           <input
             type="number"
             min={0}
-            value={item.costPrice || ''}
-            onChange={e => onUpdate({ ...item, costPrice: Number(e.target.value) })}
+            value={costPriceInput}
+            onChange={e => {
+              const nextValue = e.target.value;
+              setCostPriceInput(nextValue);
+
+              const parsed = parseNonNegativeNumber(nextValue);
+              if (parsed !== null) {
+                onUpdate({ ...item, costPrice: parsed });
+              }
+            }}
+            onBlur={() => {
+              const normalized = parseNonNegativeNumber(costPriceInput) ?? Math.max(0, item.costPrice || 0);
+              setCostPriceInput(normalized > 0 ? String(normalized) : '');
+              if (normalized !== item.costPrice) {
+                onUpdate({ ...item, costPrice: normalized });
+              }
+            }}
             placeholder="0"
             className="mt-1 w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-800 dark:text-slate-200 outline-none focus:border-primary text-right"
           />

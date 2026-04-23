@@ -2,12 +2,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ShoppingBag, Search, Plus, Calendar, Eye, Trash2, ArrowLeft, Package, CheckCircle2, Clock, ShoppingCart, Minus, ChevronRight, AlertCircle, Printer, Download, Check, Zap, Table, Grid, Info, X, Tag, Truck, Gift, MoreVertical, CreditCard, Edit2, Image as ImageIcon, FileText, FileSpreadsheet } from 'lucide-react';
 import { db } from '../services/storage';
-import { Order, OrderItem, Product, ProductVariant } from '../types';
+import { Customer, Order, OrderItem, Product, ProductVariant } from '../types';
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 const OrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [search, setSearch] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isPosOpen, setIsPosOpen] = useState(window.location.hash.includes('/pos') || window.location.pathname.includes('/pos'));
@@ -23,6 +24,12 @@ const OrdersPage: React.FC = () => {
   const [cart, setCart] = useState<OrderItem[]>([]);
   const [posSearch, setPosSearch] = useState('');
   const [selectedProductForCart, setSelectedProductForCart] = useState<Product | null>(null);
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [customerNameInput, setCustomerNameInput] = useState('');
+  const [customerPhoneInput, setCustomerPhoneInput] = useState('');
+  const [adminNote, setAdminNote] = useState('');
+  const [isCustomerMenuOpen, setIsCustomerMenuOpen] = useState(false);
 
   // State for editing price in cart
   const [editingCartItemIndex, setEditingCartItemIndex] = useState<number | null>(null);
@@ -61,7 +68,9 @@ const OrdersPage: React.FC = () => {
   const refreshData = async () => {
     const prods = await db.getProducts();
     const ords = await db.getOrders();
+    const customerList = await db.getCustomers();
     setProducts(prods);
+    setCustomers(customerList);
     let list = ords;
     if (statusFilter) {
       list = list.filter(o => o.status === (statusFilter as any));
@@ -99,13 +108,52 @@ const OrdersPage: React.FC = () => {
 
   const filteredOrders = orders.filter(o =>
     o.id.toLowerCase().includes(search.toLowerCase()) ||
-    o.items.some(item => item.name.toLowerCase().includes(search.toLowerCase()))
+    o.items.some(item => item.name.toLowerCase().includes(search.toLowerCase())) ||
+    (o.customerName || '').toLowerCase().includes(search.toLowerCase()) ||
+    (o.customerPhone || '').toLowerCase().includes(search.toLowerCase()) ||
+    (o.adminNote || '').toLowerCase().includes(search.toLowerCase())
   );
 
   const filteredPosProducts = products.filter(p =>
     p.name.toLowerCase().includes(posSearch.toLowerCase()) ||
     (p.sku && p.sku.toLowerCase().includes(posSearch.toLowerCase()))
   );
+
+  const filteredCustomers = customers.filter((customer) => {
+    const keyword = customerSearch.trim().toLowerCase();
+    if (!keyword) {
+      return true;
+    }
+
+    return customer.name.toLowerCase().includes(keyword) || customer.phone.toLowerCase().includes(keyword);
+  }).slice(0, customerSearch.trim() ? 6 : 8);
+
+  const showCustomerSuggestions = isCustomerMenuOpen && filteredCustomers.length > 0;
+
+  const selectCustomer = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setCustomerNameInput(customer.name);
+    setCustomerPhoneInput(customer.phone);
+    setCustomerSearch(customer.name);
+    setIsCustomerMenuOpen(false);
+    setError(null);
+  };
+
+  const clearSelectedCustomer = useCallback(() => {
+    setSelectedCustomer(null);
+  }, []);
+
+  const resetPosContext = () => {
+    setCart([]);
+    setSelectedCustomer(null);
+    setCustomerSearch('');
+    setCustomerNameInput('');
+    setCustomerPhoneInput('');
+    setAdminNote('');
+    setIsCustomerMenuOpen(false);
+    setError(null);
+    setCheckoutSuccess(null);
+  };
 
   const addToCart = (product: Product, variant?: ProductVariant) => {
     if (product.variants.length > 0 && !variant) {
@@ -191,9 +239,45 @@ const OrdersPage: React.FC = () => {
     setEditingCartItemIndex(null);
   };
 
+  const handleSaveCustomer = async () => {
+    const name = customerNameInput.trim();
+    const phone = customerPhoneInput.trim();
+
+    if (!name || !phone) {
+      setError('Vui lòng nhập tên và số điện thoại khách hàng.');
+      return null;
+    }
+
+    const customer = await db.upsertCustomer({
+      id: selectedCustomer?.id || undefined,
+      name,
+      phone,
+      note: selectedCustomer?.note || '',
+      lastOrderAt: new Date().toISOString(),
+    });
+
+    await refreshData();
+    selectCustomer(customer);
+    return customer;
+  };
+
   const handleCheckout = async () => {
     if (cart.length === 0) return;
     const settings = await db.getShopSettings();
+    const trimmedCustomerName = customerNameInput.trim();
+    const trimmedCustomerPhone = customerPhoneInput.trim();
+    let persistedCustomer = selectedCustomer;
+
+    if (trimmedCustomerName && trimmedCustomerPhone) {
+      persistedCustomer = await db.upsertCustomer({
+        id: selectedCustomer?.id || undefined,
+        name: trimmedCustomerName,
+        phone: trimmedCustomerPhone,
+        note: selectedCustomer?.note || '',
+        lastOrderAt: new Date().toISOString(),
+      });
+    }
+
     const totalAmount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const newOrder: Order = {
       id: 'ord-' + Date.now(),
@@ -201,6 +285,10 @@ const OrdersPage: React.FC = () => {
       date: new Date().toISOString(),
       items: [...cart],
       totalAmount,
+      customerId: persistedCustomer?.id,
+      customerName: trimmedCustomerName || persistedCustomer?.name || '',
+      customerPhone: trimmedCustomerPhone || persistedCustomer?.phone || '',
+      adminNote: adminNote.trim(),
       distributorName: settings.distributor.name,
       distributorPhone: settings.distributor.phone,
       distributorAddress: settings.distributor.address,
@@ -209,7 +297,8 @@ const OrdersPage: React.FC = () => {
     const result = await db.createOrder(newOrder);
     if (result.success) {
       setCheckoutSuccess(newOrder);
-      setCart([]);
+      resetPosContext();
+      setCheckoutSuccess(newOrder);
       refreshData();
     } else {
       setError(result.message || 'Lỗi không xác định.');
@@ -259,6 +348,12 @@ const OrdersPage: React.FC = () => {
             <div class="muted">SĐT: ${distributorPhone}</div>
           </div>
 
+          <div style="margin-top: 16px;">
+            <div class="muted">Khách hàng: ${order.customerName || 'Khách lẻ'}</div>
+            <div class="muted">SĐT khách: ${order.customerPhone || 'Chưa có'}</div>
+            <div class="muted">Ghi chú admin: ${order.adminNote || 'Không có'}</div>
+          </div>
+
           <div class="title">HÓA ĐƠN BÁN HÀNG</div>
           <p class="subtitle muted">Mã đơn: #${order.id.slice(-6).toUpperCase()} - Ngày: ${new Date(order.date).toLocaleString('vi-VN')}</p>
 
@@ -288,6 +383,7 @@ const OrdersPage: React.FC = () => {
     printWindow.print();
   };
   const closePos = () => {
+    resetPosContext();
     setIsPosOpen(false);
     if (location.pathname === '/pos') {
       navigate('/');
@@ -311,6 +407,9 @@ const OrdersPage: React.FC = () => {
         items: o.items.map(i => `${i.name} x${i.quantity}`).join('; '),
         total: o.totalAmount,
         status: o.status,
+        customer_name: o.customerName || '',
+        customer_phone: o.customerPhone || '',
+        admin_note: o.adminNote || '',
         distributor_name: o.distributorName || '',
         distributor_phone: o.distributorPhone || '',
         distributor_address: o.distributorAddress || '',
@@ -365,7 +464,7 @@ const OrdersPage: React.FC = () => {
                 <FileSpreadsheet width={18} />
               </button>
               <button
-                onClick={() => { setCart([]); setIsPosOpen(true); setError(null); setCheckoutSuccess(null); }}
+                onClick={() => { resetPosContext(); setIsPosOpen(true); }}
                 className="bg-primary text-white px-5 py-2.5 rounded-xl font-semibold flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-lg shadow-primary-light"
               >
                 <Plus size={20} />
@@ -453,6 +552,23 @@ const OrdersPage: React.FC = () => {
                   >
                     <X size={18} />
                   </button>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 border-b border-gray-100 dark:border-slate-800 bg-slate-50/80 px-5 py-4 text-sm md:grid-cols-3">
+                  <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-slate-900">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-300">Khách hàng</p>
+                    <p className="mt-1 font-bold text-slate-800 dark:text-slate-200">{selectedOrder.customerName || 'Khách lẻ'}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-300">{selectedOrder.customerPhone || 'Chưa có số điện thoại'}</p>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-slate-900">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-300">Nhà bán</p>
+                    <p className="mt-1 font-bold text-slate-800 dark:text-slate-200">{selectedOrder.distributorName || 'Chưa cấu hình'}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-300">{selectedOrder.distributorPhone || 'Chưa có số điện thoại'}</p>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-slate-900">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-300">Ghi chú admin</p>
+                    <p className="mt-1 text-sm font-medium text-slate-700 dark:text-slate-300">{selectedOrder.adminNote || 'Không có ghi chú'}</p>
+                  </div>
                 </div>
 
                 <div className="max-h-[60vh] overflow-y-auto">
@@ -577,17 +693,112 @@ const OrdersPage: React.FC = () => {
             {/* Shopping Cart (Right) - Removed shadow for flush look */}
             <aside className="w-[400px] bg-white dark:bg-slate-900 border-l border-gray-200 dark:border-slate-700 flex flex-col shrink-0 z-10 transition-all">
               {/* Customer Search Section */}
-              <div className="p-4 border-b border-gray-100 dark:border-slate-800 flex gap-2 bg-white dark:bg-slate-900">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-300 dark:text-slate-300" size={16} />
+              <div className="p-4 border-b border-gray-100 dark:border-slate-800 space-y-3 bg-white dark:bg-slate-900">
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-300 dark:text-slate-300" size={16} />
+                    <input
+                      value={customerSearch}
+                      onFocus={() => setIsCustomerMenuOpen(true)}
+                      onChange={(e) => {
+                        const nextValue = e.target.value;
+                        setCustomerSearch(nextValue);
+                        setIsCustomerMenuOpen(true);
+                        if (selectedCustomer) {
+                          const keyword = nextValue.trim().toLowerCase();
+                          const matchesCurrentCustomer = keyword.length > 0 && (
+                            selectedCustomer.name.toLowerCase().includes(keyword)
+                            || selectedCustomer.phone.toLowerCase().includes(keyword)
+                          );
+                          if (!matchesCurrentCustomer) {
+                            clearSelectedCustomer();
+                          }
+                        }
+                      }}
+                      className="w-full bg-gray-50 border border-gray-200 dark:border-slate-700 rounded-none pl-9 pr-3 py-2 text-sm text-gray-900 dark:text-slate-100 placeholder-gray-400 outline-none focus:border-primary focus:ring-0 transition-all"
+                      placeholder="Tìm tên/số điện thoại khách (ALT+C)"
+                    />
+                    {showCustomerSuggestions && filteredCustomers.length > 0 && (
+                      <div className="absolute left-0 right-0 top-full z-20 mt-1 overflow-hidden border border-gray-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900">
+                        {filteredCustomers.map((customer) => (
+                          <button
+                            key={customer.id}
+                            type="button"
+                            onClick={() => selectCustomer(customer)}
+                            className="flex w-full items-center justify-between border-b border-slate-100 px-3 py-2 text-left last:border-b-0 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800"
+                          >
+                            <div>
+                              <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{customer.name}</p>
+                              <p className="text-xs text-slate-500 dark:text-slate-300">{customer.phone}</p>
+                            </div>
+                            <span className="text-[10px] font-black uppercase tracking-wider text-primary">
+                              {selectedCustomer?.id === customer.id ? 'Đang chọn' : 'Chọn'}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <button className="bg-blue-50 text-blue-600 px-3 py-2 rounded-none text-xs font-bold flex items-center gap-1 border border-blue-100 hover:bg-blue-100">
+                    <ShoppingCart size={14} /> Mang về
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
                   <input
-                    className="w-full bg-gray-50 border border-gray-200 dark:border-slate-700 rounded-none pl-9 pr-3 py-2 text-sm text-gray-900 dark:text-slate-100 placeholder-gray-400 outline-none focus:border-primary focus:ring-0 transition-all"
-                    placeholder="Tìm tên/số điện thoại khách (ALT+C)"
+                    value={customerNameInput}
+                    onChange={(e) => {
+                      setCustomerNameInput(e.target.value);
+                      setError(null);
+                      if (selectedCustomer && e.target.value.trim() !== selectedCustomer.name) {
+                        clearSelectedCustomer();
+                      }
+                    }}
+                    className="w-full bg-gray-50 border border-gray-200 dark:border-slate-700 rounded-none px-3 py-2 text-sm text-gray-900 dark:text-slate-100 placeholder-gray-400 outline-none focus:border-primary focus:ring-0 transition-all"
+                    placeholder="Tên khách hàng"
+                  />
+                  <input
+                    value={customerPhoneInput}
+                    onChange={(e) => {
+                      setCustomerPhoneInput(e.target.value);
+                      setError(null);
+                      if (selectedCustomer && e.target.value.trim() !== selectedCustomer.phone) {
+                        clearSelectedCustomer();
+                      }
+                    }}
+                    className="w-full bg-gray-50 border border-gray-200 dark:border-slate-700 rounded-none px-3 py-2 text-sm text-gray-900 dark:text-slate-100 placeholder-gray-400 outline-none focus:border-primary focus:ring-0 transition-all"
+                    placeholder="Số điện thoại"
                   />
                 </div>
-                <button className="bg-blue-50 text-blue-600 px-3 py-2 rounded-none text-xs font-bold flex items-center gap-1 border border-blue-100 hover:bg-blue-100">
-                  <ShoppingCart size={14} /> Mang về
-                </button>
+
+                <div className="flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={handleSaveCustomer}
+                    className="inline-flex items-center gap-2 border border-primary/20 bg-primary-light px-3 py-2 text-xs font-black text-primary transition-colors hover:opacity-90"
+                  >
+                    <Plus size={14} /> {selectedCustomer ? 'Cập nhật khách' : 'Thêm khách'}
+                  </button>
+                  {selectedCustomer && (
+                    <div className="flex-1 border border-slate-200 bg-slate-50 px-3 py-2 text-right dark:border-slate-700 dark:bg-slate-800">
+                      <p className="text-xs font-black text-slate-800 dark:text-slate-200">{selectedCustomer.name}</p>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-300">{selectedCustomer.phone}</p>
+                    </div>
+                  )}
+                  {!selectedCustomer && (customerNameInput || customerPhoneInput) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCustomerSearch('');
+                        setIsCustomerMenuOpen(false);
+                        setError(null);
+                      }}
+                      className="border border-slate-200 px-3 py-2 text-[11px] font-black text-slate-500 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                    >
+                      Khách mới
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Cart Items List */}
@@ -713,6 +924,8 @@ const OrdersPage: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <div className="relative flex-1">
                     <input
+                      value={adminNote}
+                      onChange={(e) => setAdminNote(e.target.value)}
                       className="w-full bg-gray-50 border border-gray-200 dark:border-slate-700 rounded-none pl-4 pr-10 py-2.5 text-xs text-gray-800 dark:text-slate-200 outline-none placeholder-gray-400 focus:border-primary/40 focus:ring-0"
                       placeholder="Ghi chú đơn hàng..."
                     />

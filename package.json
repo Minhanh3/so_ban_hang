@@ -1,11 +1,15 @@
 {
-  "name": "sổ-bán-hàng-clone---todo-dashboard",
+  "name": "so-ban-hang-desktop",
   "private": true,
   "version": "0.0.0",
+  "main": "electron/main.js",
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "desktop:dev": "concurrently -k \"npm:dev\" \"npm:electron:dev\"",
+    "electron:dev": "wait-on tcp:3000 && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:3000 electron .",
     "build": "vite build",
+    "desktop:build": "npm run build && electron-builder",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -26,7 +30,32 @@
     "@types/react-dom": "^19.2.3",
     "@types/react-router-dom": "^5.3.3",
     "@vitejs/plugin-react": "^5.0.0",
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
+    "electron": "^41.3.0",
+    "electron-builder": "^26.8.1",
     "typescript": "~5.8.2",
-    "vite": "^6.2.0"
+    "vite": "^6.2.0",
+    "wait-on": "^9.0.5"
+  },
+  "build": {
+    "appId": "com.sobanhang.desktop",
+    "productName": "So Ban Hang",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
   }
 }

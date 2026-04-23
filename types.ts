@@ -19,9 +19,23 @@ export interface Order {
   items: OrderItem[];
   totalAmount: number;
   date: string; // ISO string
+  customerId?: string;
+  customerName?: string;
+  customerPhone?: string;
+  adminNote?: string;
   distributorName?: string;
   distributorPhone?: string;
   distributorAddress?: string;
+}
+
+export interface Customer {
+  id: string;
+  name: string;
+  phone: string;
+  note?: string;
+  createdAt: string;
+  updatedAt: string;
+  lastOrderAt?: string;
 }
 
 export interface ProductVariant {

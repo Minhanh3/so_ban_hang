@@ -6,6 +6,7 @@ import Layout from './components/Layout';
 import TodoPage from './pages/TodoPage';
 import ProductsPage from './pages/ProductsPage';
 import OrdersPage from './pages/OrdersPage';
+import CustomersPage from './pages/CustomersPage';
 import DebtsPage from './pages/DebtsPage';
 import FinancePage from './pages/FinancePage';
 import ImportPage from './pages/ImportPage';
@@ -39,6 +40,7 @@ const App: React.FC = () => {
                 <Routes>
                   <Route path="/" element={<TodoPage />} />
                   <Route path="/orders" element={<OrdersPage />} />
+                  <Route path="/customers" element={<CustomersPage />} />
                   <Route path="/products" element={<ProductsPage />} />
                   <Route path="/debts" element={<DebtsPage />} />
                   <Route path="/finance" element={<FinancePage />} />
